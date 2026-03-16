@@ -1,0 +1,4 @@
+-- Corrective migration: no SQL to execute.
+-- All changes (RLS, FK, policies, group column) already exist in the DB
+-- from migrations 0000-0003. This migration only exists to align the
+-- Drizzle snapshot with the actual database state.

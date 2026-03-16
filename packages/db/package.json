@@ -1,0 +1,30 @@
+{
+  "name": "@my-better-t-app/db",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema": "./src/schema.ts",
+    "./supabase-admin": "./src/supabase-admin.ts"
+  },
+  "scripts": {
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio",
+    "db:seed": "bun run src/seed.ts"
+  },
+  "dependencies": {
+    "@my-better-t-app/env": "workspace:*",
+    "@supabase/supabase-js": "^2.49.1",
+    "dotenv": "^16.4.7",
+    "drizzle-orm": "^0.44.7",
+    "postgres": "^3.4.8"
+  },
+  "devDependencies": {
+    "@my-better-t-app/config": "workspace:*",
+    "drizzle-kit": "^0.31.9",
+    "typescript": "catalog:"
+  }
+}
