@@ -13,6 +13,7 @@ export const profiles = pgTable("profiles", {
   fullName: text("full_name"),
   role: roleEnum("role").notNull().default("student"),
   status: statusEnum("status").notNull().default("pending"),
+  group: text("group"),
   avatarUrl: text("avatar_url"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()

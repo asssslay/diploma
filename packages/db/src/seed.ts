@@ -32,7 +32,6 @@ const client = postgres(process.env.DATABASE_URL!);
 const db = drizzle(client);
 
 try {
-  // Try to create the auth user
   const { data, error } = await supabaseAdmin.auth.admin.createUser({
     email: ADMIN_EMAIL,
     password: ADMIN_PASSWORD,
@@ -43,20 +42,22 @@ try {
   let userId: string;
 
   if (error) {
-    // Check if user already exists
     const { data: existing } = await supabaseAdmin.auth.admin
       .listUsers({ filter: `email:eq:${ADMIN_EMAIL}`, page: 1, perPage: 1 });
 
     if (!existing.users.length) throw error;
 
     userId = existing.users[0].id;
-    console.log("Admin auth user already exists, updating profile...");
+    console.log("Admin auth user already exists, updating...");
+
+    await supabaseAdmin.auth.admin.updateUserById(userId, {
+      password: ADMIN_PASSWORD,
+      email_confirm: true,
+    });
   } else {
     userId = data.user.id;
   }
 
-  // The trigger auto-created a profile with role=student, status=pending.
-  // Update it to admin + approved.
   await db
     .update(profiles)
     .set({ role: "admin", status: "approved", fullName: ADMIN_FULL_NAME })
