@@ -1,11 +1,11 @@
 import dotenv from "dotenv";
 dotenv.config({ path: "../../.env" });
 
-const { eq } = await import("drizzle-orm");
-const { drizzle } = await import("drizzle-orm/postgres-js");
-const { default: postgres } = await import("postgres");
-const { profiles } = await import("./schema");
-const { createClient } = await import("@supabase/supabase-js");
+import { eq } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
+import { profiles } from "./schema";
+import { createClient } from "@supabase/supabase-js";
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? "admin@university.com";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
