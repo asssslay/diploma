@@ -11,8 +11,15 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as AdminRouteRouteImport } from './routes/admin/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminLoginRouteImport } from './routes/admin/login'
+import { Route as AdminAuthenticatedRouteImport } from './routes/admin/_authenticated'
+import { Route as AdminAuthenticatedIndexRouteImport } from './routes/admin/_authenticated/index'
+import { Route as AdminAuthenticatedStudentsRouteImport } from './routes/admin/_authenticated/students'
+import { Route as AdminAuthenticatedNewsRouteImport } from './routes/admin/_authenticated/news'
+import { Route as AdminAuthenticatedEventsRouteImport } from './routes/admin/_authenticated/events'
+import { Route as AdminAuthenticatedDiscussionsRouteImport } from './routes/admin/_authenticated/discussions'
 
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
@@ -24,49 +31,135 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRouteRoute = AdminRouteRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminLoginRoute = AdminLoginRouteImport.update({
-  id: '/admin/login',
-  path: '/admin/login',
-  getParentRoute: () => rootRouteImport,
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => AdminRouteRoute,
 } as any)
+const AdminAuthenticatedRoute = AdminAuthenticatedRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminAuthenticatedIndexRoute = AdminAuthenticatedIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminAuthenticatedRoute,
+} as any)
+const AdminAuthenticatedStudentsRoute =
+  AdminAuthenticatedStudentsRouteImport.update({
+    id: '/students',
+    path: '/students',
+    getParentRoute: () => AdminAuthenticatedRoute,
+  } as any)
+const AdminAuthenticatedNewsRoute = AdminAuthenticatedNewsRouteImport.update({
+  id: '/news',
+  path: '/news',
+  getParentRoute: () => AdminAuthenticatedRoute,
+} as any)
+const AdminAuthenticatedEventsRoute =
+  AdminAuthenticatedEventsRouteImport.update({
+    id: '/events',
+    path: '/events',
+    getParentRoute: () => AdminAuthenticatedRoute,
+  } as any)
+const AdminAuthenticatedDiscussionsRoute =
+  AdminAuthenticatedDiscussionsRouteImport.update({
+    id: '/discussions',
+    path: '/discussions',
+    getParentRoute: () => AdminAuthenticatedRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminAuthenticatedRouteWithChildren
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/discussions': typeof AdminAuthenticatedDiscussionsRoute
+  '/admin/events': typeof AdminAuthenticatedEventsRoute
+  '/admin/news': typeof AdminAuthenticatedNewsRoute
+  '/admin/students': typeof AdminAuthenticatedStudentsRoute
+  '/admin/': typeof AdminAuthenticatedIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin': typeof AdminAuthenticatedIndexRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/discussions': typeof AdminAuthenticatedDiscussionsRoute
+  '/admin/events': typeof AdminAuthenticatedEventsRoute
+  '/admin/news': typeof AdminAuthenticatedNewsRoute
+  '/admin/students': typeof AdminAuthenticatedStudentsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteRouteWithChildren
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
+  '/admin/_authenticated': typeof AdminAuthenticatedRouteWithChildren
   '/admin/login': typeof AdminLoginRoute
+  '/admin/_authenticated/discussions': typeof AdminAuthenticatedDiscussionsRoute
+  '/admin/_authenticated/events': typeof AdminAuthenticatedEventsRoute
+  '/admin/_authenticated/news': typeof AdminAuthenticatedNewsRoute
+  '/admin/_authenticated/students': typeof AdminAuthenticatedStudentsRoute
+  '/admin/_authenticated/': typeof AdminAuthenticatedIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/register' | '/admin/login'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/login'
+    | '/register'
+    | '/admin/login'
+    | '/admin/discussions'
+    | '/admin/events'
+    | '/admin/news'
+    | '/admin/students'
+    | '/admin/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/register' | '/admin/login'
-  id: '__root__' | '/' | '/login' | '/register' | '/admin/login'
+  to:
+    | '/'
+    | '/admin'
+    | '/login'
+    | '/register'
+    | '/admin/login'
+    | '/admin/discussions'
+    | '/admin/events'
+    | '/admin/news'
+    | '/admin/students'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/login'
+    | '/register'
+    | '/admin/_authenticated'
+    | '/admin/login'
+    | '/admin/_authenticated/discussions'
+    | '/admin/_authenticated/events'
+    | '/admin/_authenticated/news'
+    | '/admin/_authenticated/students'
+    | '/admin/_authenticated/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRouteRoute: typeof AdminRouteRouteWithChildren
   LoginRoute: typeof LoginRoute
   RegisterRoute: typeof RegisterRoute
-  AdminLoginRoute: typeof AdminLoginRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -85,6 +178,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -94,19 +194,94 @@ declare module '@tanstack/react-router' {
     }
     '/admin/login': {
       id: '/admin/login'
-      path: '/admin/login'
+      path: '/login'
       fullPath: '/admin/login'
       preLoaderRoute: typeof AdminLoginRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/_authenticated': {
+      id: '/admin/_authenticated'
+      path: ''
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminAuthenticatedRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/_authenticated/': {
+      id: '/admin/_authenticated/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminAuthenticatedIndexRouteImport
+      parentRoute: typeof AdminAuthenticatedRoute
+    }
+    '/admin/_authenticated/students': {
+      id: '/admin/_authenticated/students'
+      path: '/students'
+      fullPath: '/admin/students'
+      preLoaderRoute: typeof AdminAuthenticatedStudentsRouteImport
+      parentRoute: typeof AdminAuthenticatedRoute
+    }
+    '/admin/_authenticated/news': {
+      id: '/admin/_authenticated/news'
+      path: '/news'
+      fullPath: '/admin/news'
+      preLoaderRoute: typeof AdminAuthenticatedNewsRouteImport
+      parentRoute: typeof AdminAuthenticatedRoute
+    }
+    '/admin/_authenticated/events': {
+      id: '/admin/_authenticated/events'
+      path: '/events'
+      fullPath: '/admin/events'
+      preLoaderRoute: typeof AdminAuthenticatedEventsRouteImport
+      parentRoute: typeof AdminAuthenticatedRoute
+    }
+    '/admin/_authenticated/discussions': {
+      id: '/admin/_authenticated/discussions'
+      path: '/discussions'
+      fullPath: '/admin/discussions'
+      preLoaderRoute: typeof AdminAuthenticatedDiscussionsRouteImport
+      parentRoute: typeof AdminAuthenticatedRoute
     }
   }
 }
 
+interface AdminAuthenticatedRouteChildren {
+  AdminAuthenticatedDiscussionsRoute: typeof AdminAuthenticatedDiscussionsRoute
+  AdminAuthenticatedEventsRoute: typeof AdminAuthenticatedEventsRoute
+  AdminAuthenticatedNewsRoute: typeof AdminAuthenticatedNewsRoute
+  AdminAuthenticatedStudentsRoute: typeof AdminAuthenticatedStudentsRoute
+  AdminAuthenticatedIndexRoute: typeof AdminAuthenticatedIndexRoute
+}
+
+const AdminAuthenticatedRouteChildren: AdminAuthenticatedRouteChildren = {
+  AdminAuthenticatedDiscussionsRoute: AdminAuthenticatedDiscussionsRoute,
+  AdminAuthenticatedEventsRoute: AdminAuthenticatedEventsRoute,
+  AdminAuthenticatedNewsRoute: AdminAuthenticatedNewsRoute,
+  AdminAuthenticatedStudentsRoute: AdminAuthenticatedStudentsRoute,
+  AdminAuthenticatedIndexRoute: AdminAuthenticatedIndexRoute,
+}
+
+const AdminAuthenticatedRouteWithChildren =
+  AdminAuthenticatedRoute._addFileChildren(AdminAuthenticatedRouteChildren)
+
+interface AdminRouteRouteChildren {
+  AdminAuthenticatedRoute: typeof AdminAuthenticatedRouteWithChildren
+  AdminLoginRoute: typeof AdminLoginRoute
+}
+
+const AdminRouteRouteChildren: AdminRouteRouteChildren = {
+  AdminAuthenticatedRoute: AdminAuthenticatedRouteWithChildren,
+  AdminLoginRoute: AdminLoginRoute,
+}
+
+const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
+  AdminRouteRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRouteRoute: AdminRouteRouteWithChildren,
   LoginRoute: LoginRoute,
   RegisterRoute: RegisterRoute,
-  AdminLoginRoute: AdminLoginRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

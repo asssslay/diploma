@@ -13,7 +13,6 @@ interface Profile {
   role: "admin" | "student";
   status: "pending" | "approved" | "rejected";
   fullName: string | null;
-  group: string | null;
 }
 
 interface SignInResult {
@@ -45,7 +44,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const fetchProfile = useCallback(async (userId: string) => {
     const { data } = await supabase
       .from("profiles")
-      .select("role, status, full_name, group")
+      .select("role, status, full_name")
       .eq("id", userId)
       .single();
 
@@ -54,7 +53,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         role: data.role,
         status: data.status,
         fullName: data.full_name,
-        group: data.group,
       });
     }
   }, []);
@@ -94,7 +92,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
-        .select("role, status, full_name, group")
+        .select("role, status, full_name")
         .eq("id", data.user.id)
         .single();
 
@@ -106,7 +104,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         role: profileData.role,
         status: profileData.status,
         fullName: profileData.full_name,
-        group: profileData.group,
       };
 
       setProfile(userProfile);
