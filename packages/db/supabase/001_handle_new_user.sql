@@ -8,15 +8,24 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-  INSERT INTO public.profiles (id, email, full_name, "group", role, status)
+  INSERT INTO public.profiles (id, email, full_name, role, status)
   VALUES (
     NEW.id,
     NEW.email,
     COALESCE(NEW.raw_user_meta_data->>'full_name', ''),
-    NEW.raw_user_meta_data->>'group',
     'student',
     'pending'
   );
+
+  INSERT INTO public.student_profiles (id, "group")
+  VALUES (
+    NEW.id,
+    NEW.raw_user_meta_data->>'group'
+  );
+
+  INSERT INTO public.student_applications (id)
+  VALUES (NEW.id);
+
   RETURN NEW;
 END;
 $$;

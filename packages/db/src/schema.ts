@@ -25,8 +25,6 @@ export const profiles = pgTable(
     fullName: text("full_name"),
     role: roleEnum("role").notNull().default("student"),
     status: statusEnum("status").notNull().default("pending"),
-    group: text("group"),
-    avatarUrl: text("avatar_url"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -71,3 +69,93 @@ export const profiles = pgTable(
     }),
   ],
 );
+
+export const studentProfiles = pgTable(
+  "student_profiles",
+  {
+    id: uuid("id").primaryKey(),
+    faculty: text("faculty"),
+    group: text("group"),
+    avatarUrl: text("avatar_url"),
+    backgroundUrl: text("background_url"),
+    bio: text("bio"),
+    interests: text("interests").array().notNull().default(sql`'{}'`),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.id],
+      foreignColumns: [profiles.id],
+      name: "student_profiles_id_profiles_fk",
+    }).onDelete("cascade"),
+
+    // --- SELECT policies ---
+    pgPolicy("authenticated_read_student_profiles", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`true`,
+    }),
+
+    // --- UPDATE policies ---
+    pgPolicy("admins_update_student_profiles", {
+      for: "update",
+      to: authenticatedRole,
+      using: sql`public.is_admin()`,
+      withCheck: sql`public.is_admin()`,
+    }),
+
+    pgPolicy("students_update_own_student_profile", {
+      for: "update",
+      to: authenticatedRole,
+      using: sql`${table.id} = ${authUid}`,
+      withCheck: sql`${table.id} = ${authUid}`,
+    }),
+  ],
+);
+
+export const studentApplications = pgTable(
+  "student_applications",
+  {
+    id: uuid("id").primaryKey(),
+    reviewedBy: uuid("reviewed_by"),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    rejectionReason: text("rejection_reason"),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.id],
+      foreignColumns: [profiles.id],
+      name: "student_applications_id_profiles_fk",
+    }).onDelete("cascade"),
+
+    foreignKey({
+      columns: [table.reviewedBy],
+      foreignColumns: [profiles.id],
+      name: "student_applications_reviewed_by_profiles_fk",
+    }).onDelete("set null"),
+
+    // --- SELECT policies ---
+    pgPolicy("admins_read_all_applications", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`public.is_admin()`,
+    }),
+
+    pgPolicy("students_read_own_application", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`${table.id} = ${authUid}`,
+    }),
+
+    // --- UPDATE policies ---
+    pgPolicy("admins_update_applications", {
+      for: "update",
+      to: authenticatedRole,
+      using: sql`public.is_admin()`,
+      withCheck: sql`public.is_admin()`,
+    }),
+  ],
+);
+
+export const userSettings = pgTable("user_settings", {
+  id: uuid("id").primaryKey(),
+});
