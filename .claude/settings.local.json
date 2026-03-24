@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:hono.dev)",
+      "WebFetch(domain:zod.dev)",
+      "WebFetch(domain:github.com)"
+    ]
+  }
+}
