@@ -1,6 +1,7 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
+import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -12,6 +13,31 @@ export const Route = createFileRoute("/register")({
   component: RegisterComponent,
 });
 
+const ALLOWED_EMAIL_DOMAINS = [".edu", ".edu.ua", ".ac.uk"];
+const ALLOWED_EMAILS = ["avramova.ruslana.a.r.r@gmail.com"];
+
+const registerSchema = z.object({
+  fullName: z.string().min(2, { message: "Name must be at least 2 characters" }),
+  email: z
+    .string()
+    .email({ message: "Invalid email address" })
+    .refine(
+      (val) =>
+        ALLOWED_EMAILS.includes(val) ||
+        ALLOWED_EMAIL_DOMAINS.some((domain) => val.endsWith(domain)),
+      { message: "Please use your university email address" },
+    ),
+  group: z.string().min(1, { message: "Faculty or group is required" }),
+  password: z
+    .string()
+    .min(8, { message: "Password must be at least 8 characters" })
+    .refine((val) => /[a-zA-Z]/.test(val) && /[0-9]/.test(val), {
+      message: "Password must include both letters and numbers",
+    }),
+});
+
+type FieldErrors = Partial<Record<keyof z.infer<typeof registerSchema>, string>>;
+
 function RegisterComponent() {
   const { signUp } = useAuth();
   const [fullName, setFullName] = useState("");
@@ -19,14 +45,31 @@ function RegisterComponent() {
   const [group, setGroup] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [errors, setErrors] = useState<FieldErrors>({});
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+
+    const result = registerSchema.safeParse({ fullName, email, group, password });
+
+    if (!result.success) {
+      const fieldErrors: FieldErrors = {};
+      for (const issue of result.error.issues) {
+        const field = issue.path[0] as keyof FieldErrors;
+        if (!fieldErrors[field]) {
+          fieldErrors[field] = issue.message;
+        }
+      }
+      setErrors(fieldErrors);
+      return;
+    }
+
+    setErrors({});
     setIsLoading(true);
 
-    const { error } = await signUp(email, password, {
-      full_name: fullName,
-      group,
+    const { error } = await signUp(result.data.email, result.data.password, {
+      full_name: result.data.fullName,
+      group: result.data.group,
     });
 
     setIsLoading(false);
@@ -64,9 +107,11 @@ function RegisterComponent() {
               placeholder="John Smith"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              required
               className="h-10 rounded-md px-3 text-sm"
             />
+            {errors.fullName && (
+              <p className="text-sm text-destructive">{errors.fullName}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -79,9 +124,11 @@ function RegisterComponent() {
               placeholder="student@university.edu"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              required
               className="h-10 rounded-md px-3 text-sm"
             />
+            {errors.email && (
+              <p className="text-sm text-destructive">{errors.email}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -94,9 +141,11 @@ function RegisterComponent() {
               placeholder="Computer Science"
               value={group}
               onChange={(e) => setGroup(e.target.value)}
-              required
               className="h-10 rounded-md px-3 text-sm"
             />
+            {errors.group && (
+              <p className="text-sm text-destructive">{errors.group}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -109,10 +158,11 @@ function RegisterComponent() {
               placeholder="Create your password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={8}
               className="h-10 rounded-md px-3 text-sm"
             />
+            {errors.password && (
+              <p className="text-sm text-destructive">{errors.password}</p>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
