@@ -38,7 +38,7 @@ function AdminLoginComponent() {
     }
 
     setIsLoading(false);
-    navigate({ to: "/" });
+    navigate({ to: "/admin" });
   }
 
   return (

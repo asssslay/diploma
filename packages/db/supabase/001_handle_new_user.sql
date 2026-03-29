@@ -1,5 +1,11 @@
 -- Automatically create a profile when a new auth user is created.
 -- Managed outside Drizzle — apply via Supabase SQL editor or psql.
+--
+-- SECURITY DEFINER: bypasses RLS so the trigger can INSERT into
+-- tables that have no INSERT policy for the authenticated role.
+--
+-- ON CONFLICT DO NOTHING: makes the trigger idempotent — safe if
+-- Supabase retries the INSERT or the function is re-invoked.
 
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER
@@ -12,19 +18,22 @@ BEGIN
   VALUES (
     NEW.id,
     NEW.email,
-    COALESCE(NEW.raw_user_meta_data->>'full_name', ''),
+    NULLIF(NEW.raw_user_meta_data->>'full_name', ''),
     'student',
     'pending'
-  );
+  )
+  ON CONFLICT (id) DO NOTHING;
 
   INSERT INTO public.student_profiles (id, "group")
   VALUES (
     NEW.id,
     NEW.raw_user_meta_data->>'group'
-  );
+  )
+  ON CONFLICT (id) DO NOTHING;
 
   INSERT INTO public.student_applications (id)
-  VALUES (NEW.id);
+  VALUES (NEW.id)
+  ON CONFLICT (id) DO NOTHING;
 
   RETURN NEW;
 END;
