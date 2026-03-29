@@ -45,7 +45,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const fetchProfile = useCallback(async (userId: string) => {
     const { data } = await supabase
       .from("profiles")
-      .select("role, status, full_name, student_applications(rejection_reason)")
+      .select("role, status, full_name, student_applications!student_applications_id_profiles_fk(rejection_reason)")
       .eq("id", userId)
       .single();
 
@@ -95,7 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
-        .select("role, status, full_name, student_applications(rejection_reason)")
+        .select("role, status, full_name, student_applications!student_applications_id_profiles_fk(rejection_reason)")
         .eq("id", data.user.id)
         .single();
 
