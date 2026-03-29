@@ -13,6 +13,7 @@ interface Profile {
   role: "admin" | "student";
   status: "pending" | "approved" | "rejected";
   fullName: string | null;
+  rejectionReason: string | null;
 }
 
 interface SignInResult {
@@ -44,7 +45,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const fetchProfile = useCallback(async (userId: string) => {
     const { data } = await supabase
       .from("profiles")
-      .select("role, status, full_name")
+      .select("role, status, full_name, student_applications(rejection_reason)")
       .eq("id", userId)
       .single();
 
@@ -53,6 +54,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         role: data.role,
         status: data.status,
         fullName: data.full_name,
+        rejectionReason:
+          data.student_applications?.[0]?.rejection_reason ?? null,
       });
     }
   }, []);
@@ -92,7 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
-        .select("role, status, full_name")
+        .select("role, status, full_name, student_applications(rejection_reason)")
         .eq("id", data.user.id)
         .single();
 
@@ -104,6 +107,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         role: profileData.role,
         status: profileData.status,
         fullName: profileData.full_name,
+        rejectionReason:
+          profileData.student_applications?.[0]?.rejection_reason ?? null,
       };
 
       setProfile(userProfile);
