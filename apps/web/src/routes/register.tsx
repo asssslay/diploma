@@ -107,7 +107,7 @@ function RegisterComponent() {
               placeholder="John Smith"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              className="h-10 rounded-md px-3 text-sm"
+              className="h-10 px-3 text-sm"
             />
             {errors.fullName && (
               <p className="text-sm text-destructive">{errors.fullName}</p>
@@ -124,7 +124,7 @@ function RegisterComponent() {
               placeholder="student@university.edu"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="h-10 rounded-md px-3 text-sm"
+              className="h-10 px-3 text-sm"
             />
             {errors.email && (
               <p className="text-sm text-destructive">{errors.email}</p>
@@ -141,7 +141,7 @@ function RegisterComponent() {
               placeholder="Computer Science"
               value={group}
               onChange={(e) => setGroup(e.target.value)}
-              className="h-10 rounded-md px-3 text-sm"
+              className="h-10 px-3 text-sm"
             />
             {errors.group && (
               <p className="text-sm text-destructive">{errors.group}</p>
@@ -158,7 +158,7 @@ function RegisterComponent() {
               placeholder="Create your password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="h-10 rounded-md px-3 text-sm"
+              className="h-10 px-3 text-sm"
             />
             {errors.password && (
               <p className="text-sm text-destructive">{errors.password}</p>
@@ -175,7 +175,7 @@ function RegisterComponent() {
           <Button
             type="submit"
             disabled={isLoading}
-            className="h-10 w-full rounded-md text-sm"
+            className="h-10 w-full text-sm"
           >
             {isLoading ? "Submitting..." : "Register"}
           </Button>

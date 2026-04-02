@@ -65,7 +65,7 @@ function AdminLoginComponent() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="h-10 rounded-md px-3 text-sm"
+              className="h-10 px-3 text-sm"
             />
           </div>
 
@@ -80,14 +80,14 @@ function AdminLoginComponent() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="h-10 rounded-md px-3 text-sm"
+              className="h-10 px-3 text-sm"
             />
           </div>
 
           <Button
             type="submit"
             disabled={isLoading}
-            className="h-10 w-full rounded-md text-sm"
+            className="h-10 w-full text-sm"
           >
             {isLoading ? "Logging in..." : "Log in"}
           </Button>

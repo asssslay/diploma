@@ -20,7 +20,7 @@ function HomeComponent() {
           to="/login"
           className={cn(
             buttonVariants({ variant: "default" }),
-            "h-10 w-full rounded-md text-sm",
+            "h-10 w-full text-sm",
           )}
         >
           Student Login
@@ -29,7 +29,7 @@ function HomeComponent() {
           to="/admin/login"
           className={cn(
             buttonVariants({ variant: "outline" }),
-            "h-10 w-full rounded-md text-sm",
+            "h-10 w-full text-sm",
           )}
         >
           Administrator Login
