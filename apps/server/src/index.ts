@@ -4,7 +4,8 @@ import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
 import { logger } from "hono/logger";
 import applications from "@/routes/admin/applications";
-import news from "@/routes/admin/news";
+import adminNews from "@/routes/admin/news";
+import news from "@/routes/news";
 
 const app = new Hono();
 
@@ -31,7 +32,8 @@ app.get("/", (c) => {
 
 const routes = app
   .route("/api/admin/applications", applications)
-  .route("/api/admin/news", news);
+  .route("/api/admin/news", adminNews)
+  .route("/api/news", news);
 
 export type AppType = typeof routes;
 export default app;

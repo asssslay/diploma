@@ -31,7 +31,7 @@ function LoginComponent() {
       return;
     }
 
-    navigate({ to: "/dashboard" });
+    navigate({ to: "/home" });
   }
 
   return (

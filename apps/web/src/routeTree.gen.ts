@@ -16,12 +16,13 @@ import { Route as AdminRouteRouteImport } from './routes/admin/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminLoginRouteImport } from './routes/admin/login'
 import { Route as AdminAuthenticatedRouteImport } from './routes/admin/_authenticated'
-import { Route as StudentDashboardRouteImport } from './routes/_student/dashboard'
+import { Route as StudentHomeRouteImport } from './routes/_student/home'
 import { Route as AdminAuthenticatedIndexRouteImport } from './routes/admin/_authenticated/index'
 import { Route as AdminAuthenticatedStudentsRouteImport } from './routes/admin/_authenticated/students'
 import { Route as AdminAuthenticatedNewsRouteImport } from './routes/admin/_authenticated/news'
 import { Route as AdminAuthenticatedEventsRouteImport } from './routes/admin/_authenticated/events'
 import { Route as AdminAuthenticatedDiscussionsRouteImport } from './routes/admin/_authenticated/discussions'
+import { Route as StudentNewsIdRouteImport } from './routes/_student/news.$id'
 
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
@@ -56,9 +57,9 @@ const AdminAuthenticatedRoute = AdminAuthenticatedRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => AdminRouteRoute,
 } as any)
-const StudentDashboardRoute = StudentDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
+const StudentHomeRoute = StudentHomeRouteImport.update({
+  id: '/home',
+  path: '/home',
   getParentRoute: () => StudentRoute,
 } as any)
 const AdminAuthenticatedIndexRoute = AdminAuthenticatedIndexRouteImport.update({
@@ -89,14 +90,20 @@ const AdminAuthenticatedDiscussionsRoute =
     path: '/discussions',
     getParentRoute: () => AdminAuthenticatedRoute,
   } as any)
+const StudentNewsIdRoute = StudentNewsIdRouteImport.update({
+  id: '/news/$id',
+  path: '/news/$id',
+  getParentRoute: () => StudentRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminAuthenticatedRouteWithChildren
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
-  '/dashboard': typeof StudentDashboardRoute
+  '/home': typeof StudentHomeRoute
   '/admin/login': typeof AdminLoginRoute
+  '/news/$id': typeof StudentNewsIdRoute
   '/admin/discussions': typeof AdminAuthenticatedDiscussionsRoute
   '/admin/events': typeof AdminAuthenticatedEventsRoute
   '/admin/news': typeof AdminAuthenticatedNewsRoute
@@ -108,8 +115,9 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminAuthenticatedIndexRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
-  '/dashboard': typeof StudentDashboardRoute
+  '/home': typeof StudentHomeRoute
   '/admin/login': typeof AdminLoginRoute
+  '/news/$id': typeof StudentNewsIdRoute
   '/admin/discussions': typeof AdminAuthenticatedDiscussionsRoute
   '/admin/events': typeof AdminAuthenticatedEventsRoute
   '/admin/news': typeof AdminAuthenticatedNewsRoute
@@ -122,9 +130,10 @@ export interface FileRoutesById {
   '/_student': typeof StudentRouteWithChildren
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
-  '/_student/dashboard': typeof StudentDashboardRoute
+  '/_student/home': typeof StudentHomeRoute
   '/admin/_authenticated': typeof AdminAuthenticatedRouteWithChildren
   '/admin/login': typeof AdminLoginRoute
+  '/_student/news/$id': typeof StudentNewsIdRoute
   '/admin/_authenticated/discussions': typeof AdminAuthenticatedDiscussionsRoute
   '/admin/_authenticated/events': typeof AdminAuthenticatedEventsRoute
   '/admin/_authenticated/news': typeof AdminAuthenticatedNewsRoute
@@ -138,8 +147,9 @@ export interface FileRouteTypes {
     | '/admin'
     | '/login'
     | '/register'
-    | '/dashboard'
+    | '/home'
     | '/admin/login'
+    | '/news/$id'
     | '/admin/discussions'
     | '/admin/events'
     | '/admin/news'
@@ -151,8 +161,9 @@ export interface FileRouteTypes {
     | '/admin'
     | '/login'
     | '/register'
-    | '/dashboard'
+    | '/home'
     | '/admin/login'
+    | '/news/$id'
     | '/admin/discussions'
     | '/admin/events'
     | '/admin/news'
@@ -164,9 +175,10 @@ export interface FileRouteTypes {
     | '/_student'
     | '/login'
     | '/register'
-    | '/_student/dashboard'
+    | '/_student/home'
     | '/admin/_authenticated'
     | '/admin/login'
+    | '/_student/news/$id'
     | '/admin/_authenticated/discussions'
     | '/admin/_authenticated/events'
     | '/admin/_authenticated/news'
@@ -233,11 +245,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAuthenticatedRouteImport
       parentRoute: typeof AdminRouteRoute
     }
-    '/_student/dashboard': {
-      id: '/_student/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof StudentDashboardRouteImport
+    '/_student/home': {
+      id: '/_student/home'
+      path: '/home'
+      fullPath: '/home'
+      preLoaderRoute: typeof StudentHomeRouteImport
       parentRoute: typeof StudentRoute
     }
     '/admin/_authenticated/': {
@@ -274,6 +286,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/discussions'
       preLoaderRoute: typeof AdminAuthenticatedDiscussionsRouteImport
       parentRoute: typeof AdminAuthenticatedRoute
+    }
+    '/_student/news/$id': {
+      id: '/_student/news/$id'
+      path: '/news/$id'
+      fullPath: '/news/$id'
+      preLoaderRoute: typeof StudentNewsIdRouteImport
+      parentRoute: typeof StudentRoute
     }
   }
 }
@@ -312,11 +331,13 @@ const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
 )
 
 interface StudentRouteChildren {
-  StudentDashboardRoute: typeof StudentDashboardRoute
+  StudentHomeRoute: typeof StudentHomeRoute
+  StudentNewsIdRoute: typeof StudentNewsIdRoute
 }
 
 const StudentRouteChildren: StudentRouteChildren = {
-  StudentDashboardRoute: StudentDashboardRoute,
+  StudentHomeRoute: StudentHomeRoute,
+  StudentNewsIdRoute: StudentNewsIdRoute,
 }
 
 const StudentRouteWithChildren =
