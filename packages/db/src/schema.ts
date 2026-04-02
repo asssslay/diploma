@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   foreignKey,
+  integer,
   pgEnum,
   pgPolicy,
   pgTable,
@@ -159,3 +160,59 @@ export const studentApplications = pgTable(
 export const userSettings = pgTable("user_settings", {
   id: uuid("id").primaryKey(),
 });
+
+export const newsPosts = pgTable(
+  "news_posts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    title: text("title").notNull(),
+    content: text("content").notNull(),
+    imageUrl: text("image_url"),
+    authorId: uuid("author_id"),
+    publishedAt: timestamp("published_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    viewCount: integer("view_count").default(0).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.authorId],
+      foreignColumns: [profiles.id],
+      name: "news_posts_author_id_profiles_fk",
+    }).onDelete("set null"),
+
+    // --- SELECT policies ---
+    pgPolicy("admins_manage_news", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`public.is_admin()`,
+    }),
+
+    pgPolicy("authenticated_read_news", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`true`,
+    }),
+
+    // --- INSERT policies ---
+    pgPolicy("admins_insert_news", {
+      for: "insert",
+      to: authenticatedRole,
+      withCheck: sql`public.is_admin()`,
+    }),
+
+    // --- UPDATE policies ---
+    pgPolicy("admins_update_news", {
+      for: "update",
+      to: authenticatedRole,
+      using: sql`public.is_admin()`,
+      withCheck: sql`public.is_admin()`,
+    }),
+  ],
+);
