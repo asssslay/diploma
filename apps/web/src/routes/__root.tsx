@@ -4,6 +4,7 @@ import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { AuthProvider } from "@/context/auth";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 import "../index.css";
 
@@ -40,11 +41,13 @@ function RootComponent() {
         disableTransitionOnChange
         storageKey="vite-ui-theme"
       >
-        <AuthProvider>
-          <div className="min-h-svh">
-            <Outlet />
-          </div>
-        </AuthProvider>
+        <TooltipProvider>
+          <AuthProvider>
+            <div className="min-h-svh">
+              <Outlet />
+            </div>
+          </AuthProvider>
+        </TooltipProvider>
         <Toaster richColors />
       </ThemeProvider>
       <TanStackRouterDevtools position="bottom-left" />

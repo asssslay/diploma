@@ -1,18 +1,17 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
-import {
-  ArrowLeft,
-  CalendarDays,
-  MapPin,
-  User,
-  Users,
-} from "lucide-react";
+import { ArrowLeft, CalendarDays, MapPin, User, Users } from "lucide-react";
 import { toast } from "sonner";
 import type { InferResponseType } from "hono/client";
 import { hc } from "hono/client";
 
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { getApiClient } from "@/lib/api";
 import type { AppType } from "server";
 
@@ -193,7 +192,14 @@ function EventDetailPage() {
             {isRegistering ? "Unregistering..." : "Unregister"}
           </Button>
         ) : isFull ? (
-          <Button disabled>Event Full</Button>
+          <Tooltip>
+            <TooltipTrigger>
+              <Button disabled>Event Full</Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              All {event.maxParticipants} spots have been taken.
+            </TooltipContent>
+          </Tooltip>
         ) : (
           <Button onClick={handleRegister} disabled={isRegistering}>
             {isRegistering ? "Registering..." : "Register"}
