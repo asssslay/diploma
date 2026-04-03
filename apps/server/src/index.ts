@@ -5,7 +5,9 @@ import { HTTPException } from "hono/http-exception";
 import { logger } from "hono/logger";
 import applications from "@/routes/admin/applications";
 import adminNews from "@/routes/admin/news";
+import adminEvents from "@/routes/admin/events";
 import news from "@/routes/news";
+import events from "@/routes/events";
 
 const app = new Hono();
 
@@ -14,7 +16,7 @@ app.use(
   "/*",
   cors({
     origin: env.CORS_ORIGIN,
-    allowMethods: ["GET", "POST", "PATCH", "OPTIONS"],
+    allowMethods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
   }),
 );
 
@@ -33,7 +35,9 @@ app.get("/", (c) => {
 const routes = app
   .route("/api/admin/applications", applications)
   .route("/api/admin/news", adminNews)
-  .route("/api/news", news);
+  .route("/api/admin/events", adminEvents)
+  .route("/api/news", news)
+  .route("/api/events", events);
 
 export type AppType = typeof routes;
 export default app;

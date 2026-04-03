@@ -114,7 +114,7 @@ const app = createRouter()
     const buffer = await file.arrayBuffer();
 
     const { error } = await supabaseAdmin.storage
-      .from("news-images")
+      .from("media")
       .upload(path, buffer, { contentType: file.type });
 
     if (error) {
@@ -122,7 +122,7 @@ const app = createRouter()
     }
 
     const { data: urlData } = supabaseAdmin.storage
-      .from("news-images")
+      .from("media")
       .getPublicUrl(path);
 
     return c.json({ success: true, data: { imageUrl: urlData.publicUrl } });
