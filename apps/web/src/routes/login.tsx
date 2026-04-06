@@ -38,7 +38,7 @@ function LoginComponent() {
     <div className="flex min-h-svh items-center justify-center">
       <div className="w-full max-w-sm px-4">
         <div className="mb-8 text-center">
-          <h1 className="text-2xl font-bold tracking-tight">Welcome Back</h1>
+          <h1 className="text-2xl font-light tracking-tight">Welcome Back</h1>
           <p className="mt-2 text-sm text-muted-foreground">
             Log in to your student account
           </p>
@@ -86,7 +86,10 @@ function LoginComponent() {
 
         <p className="mt-6 text-center text-sm text-muted-foreground">
           Don't have an account?{" "}
-          <Link to="/register" className="font-medium text-foreground underline">
+          <Link
+            to="/register"
+            className="font-medium text-foreground underline"
+          >
             Sign up
           </Link>
         </p>
