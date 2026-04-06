@@ -1,6 +1,6 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
-import { ArrowLeft, Eye, User, Calendar } from "lucide-react";
+import { ArrowLeft, Eye, Newspaper, User, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import type { InferResponseType } from "hono/client";
 import { hc } from "hono/client";
@@ -53,19 +53,19 @@ function NewsDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="mx-auto max-w-3xl space-y-6 p-6">
-        <Skeleton className="h-4 w-20" />
-        <Skeleton className="h-8 w-3/4" />
+      <div className="mx-auto max-w-3xl space-y-6 px-6 py-8">
+        <Skeleton className="h-8 w-16 rounded-lg" />
+        <Skeleton className="h-8 w-3/4 rounded-lg" />
         <div className="flex gap-4">
-          <Skeleton className="h-4 w-24" />
-          <Skeleton className="h-4 w-24" />
-          <Skeleton className="h-4 w-16" />
+          <Skeleton className="h-4 w-24 rounded-lg" />
+          <Skeleton className="h-4 w-24 rounded-lg" />
+          <Skeleton className="h-4 w-16 rounded-lg" />
         </div>
-        <Skeleton className="h-64 w-full" />
+        <Skeleton className="h-64 w-full rounded-xl" />
         <div className="space-y-2">
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-2/3" />
+          <Skeleton className="h-4 w-full rounded-lg" />
+          <Skeleton className="h-4 w-full rounded-lg" />
+          <Skeleton className="h-4 w-2/3 rounded-lg" />
         </div>
       </div>
     );
@@ -73,56 +73,66 @@ function NewsDetailPage() {
 
   if (!post) {
     return (
-      <div className="mx-auto max-w-3xl p-6">
+      <div className="mx-auto max-w-3xl px-6 py-8">
         <Link to="/home">
-          <Button variant="ghost" size="sm">
+          <Button variant="ghost" size="sm" className="rounded-lg">
             <ArrowLeft className="mr-2 size-4" />
             Back
           </Button>
         </Link>
-        <p className="mt-8 text-center text-muted-foreground">
-          News post not found.
-        </p>
+        <div className="flex flex-col items-center gap-3 py-20">
+          <div className="flex size-14 items-center justify-center rounded-full bg-secondary">
+            <Newspaper className="size-6 text-muted-foreground" />
+          </div>
+          <p className="text-sm text-muted-foreground">News post not found.</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 p-6">
+    <div className="mx-auto max-w-3xl space-y-6 px-6 py-8">
       <Link to="/home">
-        <Button variant="ghost" size="sm">
+        <Button variant="ghost" size="sm" className="rounded-lg">
           <ArrowLeft className="mr-2 size-4" />
           Back
         </Button>
       </Link>
 
-      <h1 className="text-2xl font-bold tracking-tight">{post.title}</h1>
+      <div className="rounded-xl bg-card p-6 shadow-sm ring-1 ring-border/50">
+        <h1 className="text-2xl font-bold tracking-tight">{post.title}</h1>
 
-      <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-        <span className="flex items-center gap-1">
-          <User className="size-3.5" />
-          {post.authorName ?? "Unknown"}
-        </span>
-        <span className="flex items-center gap-1">
-          <Calendar className="size-3.5" />
-          {new Date(post.publishedAt).toLocaleDateString()}
-        </span>
-        <span className="flex items-center gap-1">
-          <Eye className="size-3.5" />
-          {post.viewCount} views
-        </span>
-      </div>
+        <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+          <span className="flex items-center gap-1.5">
+            <User className="size-4" />
+            {post.authorName ?? "Unknown"}
+          </span>
+          <span className="flex items-center gap-1.5">
+            <Calendar className="size-4" />
+            {new Date(post.publishedAt).toLocaleDateString("en-US", {
+              weekday: "short",
+              month: "long",
+              day: "numeric",
+              year: "numeric",
+            })}
+          </span>
+          <span className="flex items-center gap-1.5">
+            <Eye className="size-4" />
+            {post.viewCount} views
+          </span>
+        </div>
 
-      {post.imageUrl && (
-        <img
-          src={post.imageUrl}
-          alt={post.title}
-          className="w-full rounded-md object-cover"
-        />
-      )}
+        {post.imageUrl && (
+          <img
+            src={post.imageUrl}
+            alt={post.title}
+            className="mt-6 w-full rounded-xl object-cover"
+          />
+        )}
 
-      <div className="whitespace-pre-wrap text-sm leading-relaxed">
-        {post.content}
+        <div className="mt-6 whitespace-pre-wrap text-base leading-relaxed text-foreground/90">
+          {post.content}
+        </div>
       </div>
     </div>
   );

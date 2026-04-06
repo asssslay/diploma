@@ -154,10 +154,7 @@ function StudentsPage() {
         </p>
       </div>
 
-      <Tabs
-        defaultValue="all"
-        onValueChange={handleFilterChange}
-      >
+      <Tabs defaultValue="all" onValueChange={handleFilterChange}>
         <TabsList>
           <TabsTrigger value="all">All</TabsTrigger>
           <TabsTrigger value="pending">Pending</TabsTrigger>
@@ -166,39 +163,39 @@ function StudentsPage() {
         </TabsList>
       </Tabs>
 
-      <div className="overflow-x-auto rounded-md border">
+      <div className="overflow-hidden rounded-xl bg-card shadow-sm ring-1 ring-border/50">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b bg-muted/50">
-              <th className="px-4 py-3 text-left font-medium">Name</th>
-              <th className="px-4 py-3 text-left font-medium">Email</th>
-              <th className="px-4 py-3 text-left font-medium">Group</th>
-              <th className="px-4 py-3 text-left font-medium">Date</th>
-              <th className="px-4 py-3 text-left font-medium">Status</th>
-              <th className="px-4 py-3 text-right font-medium">Actions</th>
+            <tr className="border-b border-border/50 bg-secondary/50">
+              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">Name</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">Email</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">Group</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">Date</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">Status</th>
+              <th className="px-4 py-3 text-right text-xs font-semibold text-muted-foreground">Actions</th>
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
               Array.from({ length: 5 }).map((_, i) => (
-                <tr key={i} className="border-b">
+                <tr key={i} className="border-b border-border/30">
                   <td className="px-4 py-3"><Skeleton className="h-4 w-32" /></td>
                   <td className="px-4 py-3"><Skeleton className="h-4 w-40" /></td>
                   <td className="px-4 py-3"><Skeleton className="h-4 w-20" /></td>
                   <td className="px-4 py-3"><Skeleton className="h-4 w-24" /></td>
                   <td className="px-4 py-3"><Skeleton className="h-5 w-16" /></td>
-                  <td className="px-4 py-3"><Skeleton className="h-8 w-20 ml-auto" /></td>
+                  <td className="px-4 py-3"><Skeleton className="ml-auto h-8 w-20" /></td>
                 </tr>
               ))
             ) : applications.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">
+                <td colSpan={6} className="px-4 py-16 text-center text-sm text-muted-foreground">
                   No applications found.
                 </td>
               </tr>
             ) : (
               applications.map((app) => (
-                <tr key={app.id} className="border-b last:border-0">
+                <tr key={app.id} className="border-b border-border/30 last:border-0">
                   <td className="px-4 py-3 font-medium">
                     {app.fullName ?? "—"}
                   </td>
@@ -210,29 +207,27 @@ function StudentsPage() {
                     {new Date(app.createdAt).toLocaleDateString()}
                   </td>
                   <td className="px-4 py-3">
-                    <Badge variant={STATUS_BADGE_VARIANT[app.status]}>
+                    <Badge variant={STATUS_BADGE_VARIANT[app.status]} className="rounded-lg">
                       {app.status}
                     </Badge>
                   </td>
                   <td className="px-4 py-3 text-right">
                     {app.status === "pending" && (
                       <div className="flex items-center justify-end gap-1">
-                        <Button
-                          size="icon-xs"
-                          variant="ghost"
+                        <button
                           onClick={() => handleApprove(app.id)}
                           title="Approve"
+                          className="flex size-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
                         >
                           <Check className="size-3.5" />
-                        </Button>
-                        <Button
-                          size="icon-xs"
-                          variant="ghost"
+                        </button>
+                        <button
                           onClick={() => openRejectDialog(app.id)}
                           title="Reject"
+                          className="flex size-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
                         >
                           <X className="size-3.5" />
-                        </Button>
+                        </button>
                       </div>
                     )}
                   </td>
@@ -249,20 +244,10 @@ function StudentsPage() {
             Page {page} of {totalPages}
           </p>
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page <= 1}
-              onClick={() => setPage((p) => p - 1)}
-            >
+            <Button variant="outline" size="sm" className="rounded-lg" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
               Previous
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page >= totalPages}
-              onClick={() => setPage((p) => p + 1)}
-            >
+            <Button variant="outline" size="sm" className="rounded-lg" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
               Next
             </Button>
           </div>
@@ -283,20 +268,13 @@ function StudentsPage() {
             value={rejectReason}
             onChange={(e) => setRejectReason(e.target.value)}
             rows={3}
+            className="rounded-lg bg-background"
           />
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setRejectDialogOpen(false)}
-              disabled={isSubmitting}
-            >
+            <Button variant="outline" className="rounded-lg" onClick={() => setRejectDialogOpen(false)} disabled={isSubmitting}>
               Cancel
             </Button>
-            <Button
-              variant="destructive"
-              onClick={handleReject}
-              disabled={!rejectReason.trim() || isSubmitting}
-            >
+            <Button variant="destructive" className="rounded-lg" onClick={handleReject} disabled={!rejectReason.trim() || isSubmitting}>
               {isSubmitting ? "Rejecting..." : "Reject"}
             </Button>
           </DialogFooter>

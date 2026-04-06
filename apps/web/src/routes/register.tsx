@@ -1,5 +1,6 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
+import { UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -85,108 +86,113 @@ function RegisterComponent() {
   }
 
   return (
-    <div className="flex min-h-svh items-center justify-center">
-      <div className="w-full max-w-sm px-4">
-        <div className="mb-8 text-center">
-          <h1 className="text-2xl font-bold tracking-tight">
-            Student Registration
-          </h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Apply for a student account
+    <div className="flex min-h-svh items-center justify-center bg-background px-4">
+      <div className="w-full max-w-sm">
+        <div className="rounded-xl bg-card p-8 shadow-sm ring-1 ring-border/50">
+          <div className="mb-8 text-center">
+            <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-accent">
+              <UserPlus className="size-6 text-accent-foreground" />
+            </div>
+            <h1 className="text-2xl font-bold tracking-tight">
+              Student Registration
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Apply for a student account
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="fullName" className="text-sm font-medium">
+                Full name
+              </Label>
+              <Input
+                id="fullName"
+                type="text"
+                placeholder="John Smith"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                className="h-10 rounded-lg bg-background px-3"
+              />
+              {errors.fullName && (
+                <p className="text-xs text-destructive">{errors.fullName}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-sm font-medium">
+                University email
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="student@university.edu"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="h-10 rounded-lg bg-background px-3"
+              />
+              {errors.email && (
+                <p className="text-xs text-destructive">{errors.email}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="group" className="text-sm font-medium">
+                Faculty or group
+              </Label>
+              <Input
+                id="group"
+                type="text"
+                placeholder="Computer Science"
+                value={group}
+                onChange={(e) => setGroup(e.target.value)}
+                className="h-10 rounded-lg bg-background px-3"
+              />
+              {errors.group && (
+                <p className="text-xs text-destructive">{errors.group}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="password" className="text-sm font-medium">
+                Password
+              </Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="Create your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="h-10 rounded-lg bg-background px-3"
+              />
+              {errors.password && (
+                <p className="text-xs text-destructive">{errors.password}</p>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Checkbox checked disabled />
+              <span className="text-sm text-muted-foreground">
+                Account approval required
+              </span>
+            </div>
+
+            <Button
+              type="submit"
+              disabled={isLoading}
+              className="h-10 w-full rounded-lg text-sm font-semibold"
+            >
+              {isLoading ? "Submitting..." : "Register"}
+            </Button>
+          </form>
+
+          <p className="mt-6 text-center text-sm text-muted-foreground">
+            Already have an account?{" "}
+            <Link to="/login" className="font-semibold text-foreground hover:underline">
+              Log in
+            </Link>
           </p>
         </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="fullName" className="text-sm font-medium">
-              Full name
-            </Label>
-            <Input
-              id="fullName"
-              type="text"
-              placeholder="John Smith"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              className="h-10 px-3 text-sm"
-            />
-            {errors.fullName && (
-              <p className="text-sm text-destructive">{errors.fullName}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="email" className="text-sm font-medium">
-              University email
-            </Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="student@university.edu"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="h-10 px-3 text-sm"
-            />
-            {errors.email && (
-              <p className="text-sm text-destructive">{errors.email}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="group" className="text-sm font-medium">
-              Faculty or group
-            </Label>
-            <Input
-              id="group"
-              type="text"
-              placeholder="Computer Science"
-              value={group}
-              onChange={(e) => setGroup(e.target.value)}
-              className="h-10 px-3 text-sm"
-            />
-            {errors.group && (
-              <p className="text-sm text-destructive">{errors.group}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="password" className="text-sm font-medium">
-              Password
-            </Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="Create your password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="h-10 px-3 text-sm"
-            />
-            {errors.password && (
-              <p className="text-sm text-destructive">{errors.password}</p>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Checkbox checked disabled />
-            <span className="text-sm text-muted-foreground">
-              Account approval required
-            </span>
-          </div>
-
-          <Button
-            type="submit"
-            disabled={isLoading}
-            className="h-10 w-full text-sm"
-          >
-            {isLoading ? "Submitting..." : "Register"}
-          </Button>
-        </form>
-
-        <p className="mt-6 text-center text-sm text-muted-foreground">
-          Already have an account?{" "}
-          <Link to="/login" className="font-medium text-foreground underline">
-            Log in
-          </Link>
-        </p>
       </div>
     </div>
   );
