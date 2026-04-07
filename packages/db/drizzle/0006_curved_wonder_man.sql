@@ -1,0 +1,1 @@
+CREATE POLICY "admins_delete_events" ON "events" AS PERMISSIVE FOR DELETE TO "authenticated" USING (public.is_admin());

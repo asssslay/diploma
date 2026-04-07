@@ -35,17 +35,23 @@ function StudentLayout() {
 
   if (profile.status === "pending") {
     return (
-      <div className="flex min-h-svh items-center justify-center px-4">
+      <div className="flex min-h-svh items-center justify-center bg-background px-4">
         <div className="max-w-sm text-center">
-          <Clock className="mx-auto size-12 text-muted-foreground" />
-          <h1 className="mt-4 text-2xl font-bold tracking-tight">
+          <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-secondary">
+            <Clock className="size-7 text-muted-foreground" />
+          </div>
+          <h1 className="mt-5 text-2xl font-bold tracking-tight">
             Application Under Review
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
             Your account is awaiting approval from an administrator. You'll get
             access once your application is reviewed.
           </p>
-          <Button variant="outline" className="mt-6" onClick={() => signOut()}>
+          <Button
+            variant="outline"
+            className="mt-6 rounded-lg"
+            onClick={() => signOut()}
+          >
             Sign Out
           </Button>
         </div>
@@ -55,24 +61,30 @@ function StudentLayout() {
 
   if (profile.status === "rejected") {
     return (
-      <div className="flex min-h-svh items-center justify-center px-4">
+      <div className="flex min-h-svh items-center justify-center bg-background px-4">
         <div className="max-w-sm text-center">
-          <XCircle className="mx-auto size-12 text-destructive" />
-          <h1 className="mt-4 text-2xl font-bold tracking-tight">
+          <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-destructive/10">
+            <XCircle className="size-7 text-destructive" />
+          </div>
+          <h1 className="mt-5 text-2xl font-bold tracking-tight">
             Application Rejected
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
             Unfortunately, your application was not approved.
           </p>
           {profile.rejectionReason && (
-            <div className="mt-4 rounded-md border bg-muted/50 p-4 text-left text-sm">
-              <p className="font-medium">Reason:</p>
-              <p className="mt-1 text-muted-foreground">
+            <div className="mt-4 rounded-xl bg-card p-4 text-left shadow-sm ring-1 ring-border/50">
+              <p className="text-xs font-semibold text-foreground">Reason:</p>
+              <p className="mt-1 text-sm text-muted-foreground">
                 {profile.rejectionReason}
               </p>
             </div>
           )}
-          <Button variant="outline" className="mt-6" onClick={() => signOut()}>
+          <Button
+            variant="outline"
+            className="mt-6 rounded-lg"
+            onClick={() => signOut()}
+          >
             Sign Out
           </Button>
         </div>

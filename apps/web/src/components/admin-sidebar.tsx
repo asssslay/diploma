@@ -6,20 +6,17 @@ import {
   CalendarDays,
   MessageSquare,
   LogOut,
+  GraduationCap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/auth";
 
 const navItems = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/admin/students", label: "Student List", icon: Users },
-  { to: "/admin/news", label: "News Management", icon: Newspaper },
-  { to: "/admin/events", label: "Event Management", icon: CalendarDays },
-  {
-    to: "/admin/discussions",
-    label: "Discussion Moderation",
-    icon: MessageSquare,
-  },
+  { to: "/admin/students", label: "Students", icon: Users },
+  { to: "/admin/news", label: "News", icon: Newspaper },
+  { to: "/admin/events", label: "Events", icon: CalendarDays },
+  { to: "/admin/discussions", label: "Discussions", icon: MessageSquare },
 ] as const;
 
 export function AdminSidebar() {
@@ -27,9 +24,12 @@ export function AdminSidebar() {
   const matchRoute = useMatchRoute();
 
   return (
-    <aside className="flex h-svh w-64 flex-col border-r bg-sidebar text-sidebar-foreground">
-      <div className="flex h-14 items-center border-b px-5">
-        <Link to="/admin" className="text-lg font-semibold tracking-tight">
+    <aside className="flex h-svh w-60 flex-col border-r border-border/50 bg-card">
+      <div className="flex h-14 items-center gap-2.5 px-5">
+        <div className="flex size-8 items-center justify-center rounded-lg bg-primary">
+          <GraduationCap className="size-4 text-primary-foreground" />
+        </div>
+        <Link to="/admin" className="text-base font-bold tracking-tight">
           UniCommunity
         </Link>
       </div>
@@ -46,10 +46,10 @@ export function AdminSidebar() {
               key={to}
               to={to}
               className={cn(
-                "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                 isActive
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground",
+                  ? "bg-accent text-accent-foreground"
+                  : "text-muted-foreground hover:bg-secondary hover:text-foreground",
               )}
             >
               <Icon className="size-4" />
@@ -59,14 +59,14 @@ export function AdminSidebar() {
         })}
       </nav>
 
-      <div className="border-t px-3 py-4">
-        <div className="mb-3 px-3 text-xs text-sidebar-foreground/50">
+      <div className="border-t border-border/50 px-3 py-4">
+        <div className="mb-3 px-3 text-xs font-medium text-muted-foreground">
           {profile?.fullName ?? "Administrator"}
         </div>
         <button
           type="button"
           onClick={() => signOut()}
-          className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
         >
           <LogOut className="size-4" />
           Sign Out

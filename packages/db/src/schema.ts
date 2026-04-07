@@ -1,11 +1,13 @@
 import { sql } from "drizzle-orm";
 import {
   foreignKey,
+  integer,
   pgEnum,
   pgPolicy,
   pgTable,
   text,
   timestamp,
+  unique,
   uuid,
 } from "drizzle-orm/pg-core";
 import { authenticatedRole, authUid, authUsers } from "drizzle-orm/supabase";
@@ -159,3 +161,185 @@ export const studentApplications = pgTable(
 export const userSettings = pgTable("user_settings", {
   id: uuid("id").primaryKey(),
 });
+
+export const newsPosts = pgTable(
+  "news_posts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    title: text("title").notNull(),
+    content: text("content").notNull(),
+    imageUrl: text("image_url"),
+    authorId: uuid("author_id"),
+    publishedAt: timestamp("published_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    viewCount: integer("view_count").default(0).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.authorId],
+      foreignColumns: [profiles.id],
+      name: "news_posts_author_id_profiles_fk",
+    }).onDelete("set null"),
+
+    // --- SELECT policies ---
+    pgPolicy("admins_manage_news", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`public.is_admin()`,
+    }),
+
+    pgPolicy("authenticated_read_news", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`true`,
+    }),
+
+    // --- INSERT policies ---
+    pgPolicy("admins_insert_news", {
+      for: "insert",
+      to: authenticatedRole,
+      withCheck: sql`public.is_admin()`,
+    }),
+
+    // --- UPDATE policies ---
+    pgPolicy("admins_update_news", {
+      for: "update",
+      to: authenticatedRole,
+      using: sql`public.is_admin()`,
+      withCheck: sql`public.is_admin()`,
+    }),
+
+    // --- DELETE policies ---
+    pgPolicy("admins_delete_news", {
+      for: "delete",
+      to: authenticatedRole,
+      using: sql`public.is_admin()`,
+    }),
+  ],
+);
+
+export const events = pgTable(
+  "events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    title: text("title").notNull(),
+    description: text("description").notNull(),
+    imageUrl: text("image_url"),
+    authorId: uuid("author_id"),
+    eventDate: timestamp("event_date", { withTimezone: true }).notNull(),
+    location: text("location").notNull(),
+    maxParticipants: integer("max_participants").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.authorId],
+      foreignColumns: [profiles.id],
+      name: "events_author_id_profiles_fk",
+    }).onDelete("set null"),
+
+    // --- SELECT policies ---
+    pgPolicy("admins_manage_events", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`public.is_admin()`,
+    }),
+
+    pgPolicy("authenticated_read_events", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`true`,
+    }),
+
+    // --- INSERT policies ---
+    pgPolicy("admins_insert_events", {
+      for: "insert",
+      to: authenticatedRole,
+      withCheck: sql`public.is_admin()`,
+    }),
+
+    // --- UPDATE policies ---
+    pgPolicy("admins_update_events", {
+      for: "update",
+      to: authenticatedRole,
+      using: sql`public.is_admin()`,
+      withCheck: sql`public.is_admin()`,
+    }),
+
+    // --- DELETE policies ---
+    pgPolicy("admins_delete_events", {
+      for: "delete",
+      to: authenticatedRole,
+      using: sql`public.is_admin()`,
+    }),
+  ],
+);
+
+export const eventRegistrations = pgTable(
+  "event_registrations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    eventId: uuid("event_id").notNull(),
+    studentId: uuid("student_id").notNull(),
+    registeredAt: timestamp("registered_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.eventId],
+      foreignColumns: [events.id],
+      name: "event_registrations_event_id_events_fk",
+    }).onDelete("cascade"),
+
+    foreignKey({
+      columns: [table.studentId],
+      foreignColumns: [profiles.id],
+      name: "event_registrations_student_id_profiles_fk",
+    }).onDelete("cascade"),
+
+    unique("event_registrations_event_student_unique").on(
+      table.eventId,
+      table.studentId,
+    ),
+
+    // --- SELECT policies ---
+    pgPolicy("admins_read_all_registrations", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`public.is_admin()`,
+    }),
+
+    pgPolicy("students_read_own_registrations", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`${table.studentId} = ${authUid}`,
+    }),
+
+    // --- INSERT policies ---
+    pgPolicy("students_insert_own_registration", {
+      for: "insert",
+      to: authenticatedRole,
+      withCheck: sql`${table.studentId} = ${authUid}`,
+    }),
+
+    // --- DELETE policies ---
+    pgPolicy("students_delete_own_registration", {
+      for: "delete",
+      to: authenticatedRole,
+      using: sql`${table.studentId} = ${authUid}`,
+    }),
+  ],
+);
