@@ -1,6 +1,6 @@
 import { zValidator } from "@hono/zod-validator";
 import { HTTPException } from "hono/http-exception";
-import { count, desc, eq } from "drizzle-orm";
+import { count, desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@my-better-t-app/db";
 import {
@@ -32,6 +32,15 @@ const createEventSchema = z.object({
   maxParticipants: z.number().int().positive(),
 });
 
+const updateEventSchema = z.object({
+  title: z.string().min(1).max(200).optional(),
+  description: z.string().min(1).optional(),
+  imageUrl: z.string().url().nullable().optional(),
+  eventDate: z.string().datetime().optional(),
+  location: z.string().min(1).max(300).optional(),
+  maxParticipants: z.number().int().positive().optional(),
+});
+
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
@@ -54,6 +63,7 @@ const app = createRouter()
           location: events.location,
           maxParticipants: events.maxParticipants,
           createdAt: events.createdAt,
+          updatedAt: events.updatedAt,
         })
         .from(events)
         .leftJoin(profiles, eq(events.authorId, profiles.id))
@@ -184,6 +194,57 @@ const app = createRouter()
       .returning();
 
     return c.json({ success: true, data: event }, 201);
+  })
+
+  .patch(
+    "/:id",
+    zValidator("param", idParamSchema, validationHook),
+    zValidator("json", updateEventSchema, validationHook),
+    async (c) => {
+      const { id } = c.req.valid("param");
+      const updates = c.req.valid("json");
+
+      const [existing] = await db
+        .select({ id: events.id })
+        .from(events)
+        .where(eq(events.id, id))
+        .limit(1);
+
+      if (!existing) {
+        throw new HTTPException(404, { message: "Event not found" });
+      }
+
+      const setValues: Record<string, unknown> = { updatedAt: sql`now()` };
+      if (updates.title !== undefined) setValues.title = updates.title;
+      if (updates.description !== undefined) setValues.description = updates.description;
+      if (updates.imageUrl !== undefined) setValues.imageUrl = updates.imageUrl;
+      if (updates.location !== undefined) setValues.location = updates.location;
+      if (updates.maxParticipants !== undefined) setValues.maxParticipants = updates.maxParticipants;
+      if (updates.eventDate !== undefined) setValues.eventDate = new Date(updates.eventDate);
+
+      const [event] = await db
+        .update(events)
+        .set(setValues)
+        .where(eq(events.id, id))
+        .returning();
+
+      return c.json({ success: true, data: event });
+    },
+  )
+
+  .delete("/:id", zValidator("param", idParamSchema, validationHook), async (c) => {
+    const { id } = c.req.valid("param");
+
+    const deleted = await db
+      .delete(events)
+      .where(eq(events.id, id))
+      .returning();
+
+    if (deleted.length === 0) {
+      throw new HTTPException(404, { message: "Event not found" });
+    }
+
+    return c.json({ success: true, data: { id } });
   });
 
 export default app;

@@ -1,12 +1,7 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
-import {
-  ArrowLeft,
-  CalendarDays,
-  MapPin,
-  User,
-  Users,
-} from "lucide-react";
+import { ArrowLeft, CalendarDays, MapPin, User, Users } from "lucide-react";
+import { formatDate, isEdited } from "@/lib/utils";
 import { toast } from "sonner";
 import type { InferResponseType } from "hono/client";
 import { hc } from "hono/client";
@@ -190,11 +185,10 @@ function EventDetailPage() {
             <div>
               <p className="text-[10px] text-muted-foreground">Date</p>
               <p className="text-xs font-medium">
-                {new Date(event.eventDate).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                })}
+                {formatDate(event.eventDate)}
+                {event.updatedAt && isEdited(event.createdAt, event.updatedAt) && (
+                  <span className="text-muted-foreground/60 font-normal"> · Edited</span>
+                )}
               </p>
             </div>
           </div>

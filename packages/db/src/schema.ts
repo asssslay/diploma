@@ -277,6 +277,13 @@ export const events = pgTable(
       using: sql`public.is_admin()`,
       withCheck: sql`public.is_admin()`,
     }),
+
+    // --- DELETE policies ---
+    pgPolicy("admins_delete_events", {
+      for: "delete",
+      to: authenticatedRole,
+      using: sql`public.is_admin()`,
+    }),
   ],
 );
 

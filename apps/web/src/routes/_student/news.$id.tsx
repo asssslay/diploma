@@ -1,6 +1,7 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { ArrowLeft, Eye, Newspaper, User, Calendar } from "lucide-react";
+import { formatDate, isEdited } from "@/lib/utils";
 import { toast } from "sonner";
 import type { InferResponseType } from "hono/client";
 import { hc } from "hono/client";
@@ -109,20 +110,11 @@ function NewsDetailPage() {
           </span>
           <span className="flex items-center gap-1.5">
             <Calendar className="size-4" />
-            {new Date(post.publishedAt).toLocaleDateString("en-US", {
-              weekday: "short",
-              month: "long",
-              day: "numeric",
-              year: "numeric",
-            })}
-            {post.updatedAt && new Date(post.updatedAt).getTime() - new Date(post.createdAt).getTime() > 60000 && (
+            {formatDate(post.publishedAt, { weekday: "short", month: "long" })}
+            {post.updatedAt && isEdited(post.createdAt, post.updatedAt) && (
               <span className="text-muted-foreground/60">
                 {" · Edited "}
-                {new Date(post.updatedAt).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                })}
+                {formatDate(post.updatedAt)}
               </span>
             )}
           </span>

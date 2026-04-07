@@ -43,6 +43,13 @@
       "when": 1775550711259,
       "tag": "0005_nifty_liz_osborn",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1775551806302,
+      "tag": "0006_curved_wonder_man",
+      "breakpoints": true
     }
   ]
 }

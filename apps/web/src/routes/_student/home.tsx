@@ -13,6 +13,7 @@ import {
   Users,
 } from "lucide-react";
 import { toast } from "sonner";
+import { formatDate, formatTime, isEdited } from "@/lib/utils";
 import type { InferResponseType } from "hono/client";
 import { hc } from "hono/client";
 
@@ -322,15 +323,8 @@ function HomePage() {
                           {truncate(post.content, 120)}
                         </p>
                         <p className="mt-1.5 text-xs text-muted-foreground/70">
-                          {new Date(post.publishedAt).toLocaleDateString(
-                            "en-US",
-                            {
-                              month: "long",
-                              day: "numeric",
-                              year: "numeric",
-                            },
-                          )}
-                          {post.updatedAt && new Date(post.updatedAt).getTime() - new Date(post.createdAt).getTime() > 60000 && (
+                          {formatDate(post.publishedAt, { month: "long" })}
+                          {post.updatedAt && isEdited(post.createdAt, post.updatedAt) && (
                             <span> · Edited</span>
                           )}
                         </p>
@@ -503,21 +497,11 @@ function HomePage() {
                           <div className="flex flex-col gap-1 text-sm text-muted-foreground">
                             <span className="flex items-center gap-1.5">
                               <CalendarDays className="size-3" />
-                              {new Date(event.eventDate).toLocaleDateString(
-                                "en-US",
-                                {
-                                  weekday: "short",
-                                  month: "short",
-                                  day: "numeric",
-                                },
-                              )}
+                              {formatDate(event.eventDate, { weekday: "short" })}
                               {" at "}
-                              {new Date(event.eventDate).toLocaleTimeString(
-                                "en-US",
-                                {
-                                  hour: "numeric",
-                                  minute: "2-digit",
-                                },
+                              {formatTime(event.eventDate)}
+                              {event.updatedAt && isEdited(event.createdAt, event.updatedAt) && (
+                                <span className="text-muted-foreground/50"> · Edited</span>
                               )}
                             </span>
                             <span className="flex items-center gap-1.5">

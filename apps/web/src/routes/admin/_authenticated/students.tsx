@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { Check, X } from "lucide-react";
+import { formatDate } from "@/lib/utils";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -204,7 +205,7 @@ function StudentsPage() {
                   </td>
                   <td className="px-4 py-3">{app.group ?? "—"}</td>
                   <td className="px-4 py-3 text-muted-foreground">
-                    {new Date(app.createdAt).toLocaleDateString()}
+                    {formatDate(app.createdAt)}
                   </td>
                   <td className="px-4 py-3">
                     <Badge variant={STATUS_BADGE_VARIANT[app.status]} className="rounded-lg">

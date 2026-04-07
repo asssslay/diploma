@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { Pencil, Plus, Trash2 } from "lucide-react";
+import { formatDate, isEdited } from "@/lib/utils";
 import { toast } from "sonner";
 import { z } from "zod";
 import type { InferResponseType } from "hono/client";
@@ -259,8 +260,8 @@ function NewsPage() {
                   <td className="px-4 py-3 font-medium">{post.title}</td>
                   <td className="px-4 py-3 text-muted-foreground">{post.authorName ?? "—"}</td>
                   <td className="px-4 py-3 text-muted-foreground">
-                    {new Date(post.publishedAt).toLocaleDateString()}
-                    {post.updatedAt && new Date(post.updatedAt).getTime() - new Date(post.createdAt).getTime() > 60000 && (
+                    {formatDate(post.publishedAt)}
+                    {post.updatedAt && isEdited(post.createdAt, post.updatedAt) && (
                       <span className="text-muted-foreground/50"> · Edited</span>
                     )}
                   </td>

@@ -37,6 +37,7 @@ const app = createRouter()
           location: events.location,
           maxParticipants: events.maxParticipants,
           createdAt: events.createdAt,
+          updatedAt: events.updatedAt,
         })
         .from(events)
         .leftJoin(profiles, eq(events.authorId, profiles.id))
