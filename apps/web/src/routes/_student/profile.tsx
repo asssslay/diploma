@@ -233,6 +233,16 @@ function ProfilePage() {
                 disabled={isUploadingAvatar}
               />
             </label>
+            <label className="absolute -bottom-0.5 -right-0.5 flex size-7 cursor-pointer items-center justify-center rounded-full bg-secondary text-muted-foreground shadow-sm ring-1 ring-border/50 transition-colors hover:bg-secondary/80">
+              <Camera className="size-3.5" />
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={handleAvatarChange}
+                disabled={isUploadingAvatar}
+              />
+            </label>
             {isUploadingAvatar && (
               <div className="absolute inset-0 flex items-center justify-center rounded-full bg-foreground/40">
                 <div className="size-5 animate-spin rounded-full border-2 border-background border-t-transparent" />
