@@ -8,6 +8,7 @@ import adminNews from "@/routes/admin/news";
 import adminEvents from "@/routes/admin/events";
 import news from "@/routes/news";
 import events from "@/routes/events";
+import profile from "@/routes/profile";
 
 const app = new Hono();
 
@@ -37,7 +38,8 @@ const routes = app
   .route("/api/admin/news", adminNews)
   .route("/api/admin/events", adminEvents)
   .route("/api/news", news)
-  .route("/api/events", events);
+  .route("/api/events", events)
+  .route("/api/profile", profile);
 
 export type AppType = typeof routes;
 export default app;

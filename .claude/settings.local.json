@@ -8,7 +8,8 @@
       "WebFetch(domain:supabase.com)",
       "Bash(xargs grep:*)",
       "Bash(pnpm --filter web run check-types)",
-      "Bash(pnpm --filter server run check-types)"
+      "Bash(pnpm --filter server run check-types)",
+      "Bash(pnpm install:*)"
     ]
   }
 }
