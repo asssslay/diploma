@@ -254,7 +254,7 @@ function DiscussionsPage() {
           {filtered.map((d) => (
             <Link
               key={d.id}
-              to="/discussions/$id"
+              to="/discussion/$id"
               params={{ id: d.id }}
               className="group block"
             >

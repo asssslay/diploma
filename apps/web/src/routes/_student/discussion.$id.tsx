@@ -39,7 +39,7 @@ type DetailResponse = Extract<InferResponseType<DetailEndpoint>, { success: true
 type DiscussionDetail = DetailResponse["data"];
 type Comment = DiscussionDetail["comments"][number];
 
-export const Route = createFileRoute("/_student/discussions/$id")({
+export const Route = createFileRoute("/_student/discussion/$id")({
   component: DiscussionDetailPage,
 });
 
@@ -252,7 +252,7 @@ function DiscussionDetailPage() {
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <h1 className="text-2xl font-bold tracking-tight">{discussion.title}</h1>
-              <Badge className={`shrink-0 rounded-lg text-xs px-2.5 py-0.5 ${CATEGORY_COLORS[discussion.category] ?? ""}`}>
+              <Badge className={`shrink-0 rounded-lg text-xs px-2.5 py-0.5 ${CATEGORY_COLORS[discussion.category] ?? ``}`}>
                 {discussion.category}
               </Badge>
             </div>
@@ -293,7 +293,7 @@ function DiscussionDetailPage() {
                 : "bg-secondary text-muted-foreground hover:bg-secondary/80"
             }`}
           >
-            <Heart className={`size-4 ${discussion.isReacted ? "fill-current" : ""}`} />
+            <Heart className={`size-4 ${discussion.isReacted ? `fill-current` : ``}`} />
             {discussion.reactionsCount}
           </button>
         </div>
@@ -354,7 +354,7 @@ function DiscussionDetailPage() {
                           : "text-muted-foreground hover:bg-secondary"
                       }`}
                     >
-                      <Heart className={`size-3 ${comment.isReacted ? "fill-current" : ""}`} />
+                      <Heart className={`size-3 ${comment.isReacted ? `fill-current` : ``}`} />
                       {comment.reactionsCount}
                     </button>
                   </div>
@@ -375,7 +375,7 @@ function DiscussionDetailPage() {
             className="rounded-lg bg-background"
           />
           <div className="mt-2 flex items-center justify-between">
-            <span className={`text-xs ${commentText.length > 450 ? "text-destructive" : "text-muted-foreground"}`}>
+            <span className={`text-xs ${commentText.length > 450 ? `text-destructive` : `text-muted-foreground`}`}>
               {commentText.length}/500
             </span>
             <Button
@@ -407,7 +407,7 @@ function DiscussionDetailPage() {
               <div className="flex flex-wrap gap-2">
                 {["general", "academic", "social", "help", "feedback"].map((c) => (
                   <button key={c} type="button" onClick={() => setEditCategory(c)}
-                    className={`h-8 rounded-lg px-3 text-sm font-medium transition-colors ${editCategory === c ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>
+                    className={`h-8 rounded-lg px-3 text-sm font-medium transition-colors ${editCategory === c ? `bg-primary text-primary-foreground` : `bg-secondary text-muted-foreground`}`}>
                     {c}
                   </button>
                 ))}
@@ -433,7 +433,7 @@ function DiscussionDetailPage() {
           </DialogHeader>
           <div className="space-y-2">
             <Textarea value={editCommentText} onChange={(e) => setEditCommentText(e.target.value)} rows={3} maxLength={500} className="rounded-lg bg-background" />
-            <span className={`text-xs ${editCommentText.length > 450 ? "text-destructive" : "text-muted-foreground"}`}>
+            <span className={`text-xs ${editCommentText.length > 450 ? `text-destructive` : `text-muted-foreground`}`}>
               {editCommentText.length}/500
             </span>
           </div>

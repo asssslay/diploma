@@ -27,7 +27,7 @@ import { Route as AdminAuthenticatedDiscussionsRouteImport } from './routes/admi
 import { Route as StudentProfileIdRouteImport } from './routes/_student/profile.$id'
 import { Route as StudentNewsIdRouteImport } from './routes/_student/news.$id'
 import { Route as StudentEventsIdRouteImport } from './routes/_student/events.$id'
-import { Route as StudentDiscussionsIdRouteImport } from './routes/_student/discussions.$id'
+import { Route as StudentDiscussionIdRouteImport } from './routes/_student/discussion.$id'
 
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
@@ -120,10 +120,10 @@ const StudentEventsIdRoute = StudentEventsIdRouteImport.update({
   path: '/events/$id',
   getParentRoute: () => StudentRoute,
 } as any)
-const StudentDiscussionsIdRoute = StudentDiscussionsIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => StudentDiscussionsRoute,
+const StudentDiscussionIdRoute = StudentDiscussionIdRouteImport.update({
+  id: '/discussion/$id',
+  path: '/discussion/$id',
+  getParentRoute: () => StudentRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -131,11 +131,11 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminAuthenticatedRouteWithChildren
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
-  '/discussions': typeof StudentDiscussionsRouteWithChildren
+  '/discussions': typeof StudentDiscussionsRoute
   '/home': typeof StudentHomeRoute
   '/profile': typeof StudentProfileRouteWithChildren
   '/admin/login': typeof AdminLoginRoute
-  '/discussions/$id': typeof StudentDiscussionsIdRoute
+  '/discussion/$id': typeof StudentDiscussionIdRoute
   '/events/$id': typeof StudentEventsIdRoute
   '/news/$id': typeof StudentNewsIdRoute
   '/profile/$id': typeof StudentProfileIdRoute
@@ -150,11 +150,11 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminAuthenticatedIndexRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
-  '/discussions': typeof StudentDiscussionsRouteWithChildren
+  '/discussions': typeof StudentDiscussionsRoute
   '/home': typeof StudentHomeRoute
   '/profile': typeof StudentProfileRouteWithChildren
   '/admin/login': typeof AdminLoginRoute
-  '/discussions/$id': typeof StudentDiscussionsIdRoute
+  '/discussion/$id': typeof StudentDiscussionIdRoute
   '/events/$id': typeof StudentEventsIdRoute
   '/news/$id': typeof StudentNewsIdRoute
   '/profile/$id': typeof StudentProfileIdRoute
@@ -170,12 +170,12 @@ export interface FileRoutesById {
   '/_student': typeof StudentRouteWithChildren
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
-  '/_student/discussions': typeof StudentDiscussionsRouteWithChildren
+  '/_student/discussions': typeof StudentDiscussionsRoute
   '/_student/home': typeof StudentHomeRoute
   '/_student/profile': typeof StudentProfileRouteWithChildren
   '/admin/_authenticated': typeof AdminAuthenticatedRouteWithChildren
   '/admin/login': typeof AdminLoginRoute
-  '/_student/discussions/$id': typeof StudentDiscussionsIdRoute
+  '/_student/discussion/$id': typeof StudentDiscussionIdRoute
   '/_student/events/$id': typeof StudentEventsIdRoute
   '/_student/news/$id': typeof StudentNewsIdRoute
   '/_student/profile/$id': typeof StudentProfileIdRoute
@@ -196,7 +196,7 @@ export interface FileRouteTypes {
     | '/home'
     | '/profile'
     | '/admin/login'
-    | '/discussions/$id'
+    | '/discussion/$id'
     | '/events/$id'
     | '/news/$id'
     | '/profile/$id'
@@ -215,7 +215,7 @@ export interface FileRouteTypes {
     | '/home'
     | '/profile'
     | '/admin/login'
-    | '/discussions/$id'
+    | '/discussion/$id'
     | '/events/$id'
     | '/news/$id'
     | '/profile/$id'
@@ -235,7 +235,7 @@ export interface FileRouteTypes {
     | '/_student/profile'
     | '/admin/_authenticated'
     | '/admin/login'
-    | '/_student/discussions/$id'
+    | '/_student/discussion/$id'
     | '/_student/events/$id'
     | '/_student/news/$id'
     | '/_student/profile/$id'
@@ -382,12 +382,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StudentEventsIdRouteImport
       parentRoute: typeof StudentRoute
     }
-    '/_student/discussions/$id': {
-      id: '/_student/discussions/$id'
-      path: '/$id'
-      fullPath: '/discussions/$id'
-      preLoaderRoute: typeof StudentDiscussionsIdRouteImport
-      parentRoute: typeof StudentDiscussionsRoute
+    '/_student/discussion/$id': {
+      id: '/_student/discussion/$id'
+      path: '/discussion/$id'
+      fullPath: '/discussion/$id'
+      preLoaderRoute: typeof StudentDiscussionIdRouteImport
+      parentRoute: typeof StudentRoute
     }
   }
 }
@@ -425,17 +425,6 @@ const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
   AdminRouteRouteChildren,
 )
 
-interface StudentDiscussionsRouteChildren {
-  StudentDiscussionsIdRoute: typeof StudentDiscussionsIdRoute
-}
-
-const StudentDiscussionsRouteChildren: StudentDiscussionsRouteChildren = {
-  StudentDiscussionsIdRoute: StudentDiscussionsIdRoute,
-}
-
-const StudentDiscussionsRouteWithChildren =
-  StudentDiscussionsRoute._addFileChildren(StudentDiscussionsRouteChildren)
-
 interface StudentProfileRouteChildren {
   StudentProfileIdRoute: typeof StudentProfileIdRoute
 }
@@ -449,17 +438,19 @@ const StudentProfileRouteWithChildren = StudentProfileRoute._addFileChildren(
 )
 
 interface StudentRouteChildren {
-  StudentDiscussionsRoute: typeof StudentDiscussionsRouteWithChildren
+  StudentDiscussionsRoute: typeof StudentDiscussionsRoute
   StudentHomeRoute: typeof StudentHomeRoute
   StudentProfileRoute: typeof StudentProfileRouteWithChildren
+  StudentDiscussionIdRoute: typeof StudentDiscussionIdRoute
   StudentEventsIdRoute: typeof StudentEventsIdRoute
   StudentNewsIdRoute: typeof StudentNewsIdRoute
 }
 
 const StudentRouteChildren: StudentRouteChildren = {
-  StudentDiscussionsRoute: StudentDiscussionsRouteWithChildren,
+  StudentDiscussionsRoute: StudentDiscussionsRoute,
   StudentHomeRoute: StudentHomeRoute,
   StudentProfileRoute: StudentProfileRouteWithChildren,
+  StudentDiscussionIdRoute: StudentDiscussionIdRoute,
   StudentEventsIdRoute: StudentEventsIdRoute,
   StudentNewsIdRoute: StudentNewsIdRoute,
 }
