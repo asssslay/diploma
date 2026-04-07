@@ -1,5 +1,5 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { useCallback, useEffect, useState } from "react";
+import { startTransition, useCallback, useEffect, useOptimistic, useState } from "react";
 import {
   ArrowLeft,
   Eye,
@@ -10,7 +10,6 @@ import {
   User,
 } from "lucide-react";
 import { toast } from "sonner";
-import { z } from "zod";
 import type { InferResponseType } from "hono/client";
 import { hc } from "hono/client";
 
@@ -39,6 +38,8 @@ type DetailResponse = Extract<InferResponseType<DetailEndpoint>, { success: true
 type DiscussionDetail = DetailResponse["data"];
 type Comment = DiscussionDetail["comments"][number];
 
+type ServerComment = Omit<Comment, "reactionsCount" | "isReacted">;
+
 export const Route = createFileRoute("/_student/discussion/$id")({
   component: DiscussionDetailPage,
 });
@@ -57,6 +58,40 @@ function DiscussionDetailPage() {
   const [discussion, setDiscussion] = useState<DiscussionDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  type OptimisticAction =
+    | { type: "react-discussion" }
+    | { type: "react-comment"; commentId: string }
+    | { type: "delete-comment"; commentId: string };
+
+  const [optimistic, applyOptimistic] = useOptimistic(
+    discussion,
+    (current, action: OptimisticAction) => {
+      if (!current) return current;
+      switch (action.type) {
+        case "react-discussion":
+          return {
+            ...current,
+            isReacted: !current.isReacted,
+            reactionsCount: current.reactionsCount + (current.isReacted ? -1 : 1),
+          };
+        case "react-comment":
+          return {
+            ...current,
+            comments: current.comments.map((c) =>
+              c.id === action.commentId
+                ? { ...c, isReacted: !c.isReacted, reactionsCount: c.reactionsCount + (c.isReacted ? -1 : 1) }
+                : c,
+            ),
+          };
+        case "delete-comment":
+          return {
+            ...current,
+            comments: current.comments.filter((c) => c.id !== action.commentId),
+          };
+      }
+    },
+  );
+
   // Comment form
   const [commentText, setCommentText] = useState("");
   const [isAddingComment, setIsAddingComment] = useState(false);
@@ -74,8 +109,6 @@ function DiscussionDetailPage() {
   const [editCommentText, setEditCommentText] = useState("");
   const [isEditCommentSubmitting, setIsEditCommentSubmitting] = useState(false);
 
-  const [isReacting, setIsReacting] = useState(false);
-
   const fetchDiscussion = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -90,19 +123,27 @@ function DiscussionDetailPage() {
 
   useEffect(() => { fetchDiscussion(); }, [fetchDiscussion]);
 
-  async function handleReactDiscussion() {
+  function handleReactDiscussion() {
     if (!discussion) return;
-    setIsReacting(true);
-    try {
-      const api = await getApiClient();
-      if (discussion.isReacted) {
-        await api.api.discussions[":id"].react.$delete({ param: { id } });
-      } else {
-        await api.api.discussions[":id"].react.$post({ param: { id } });
+    const wasReacted = discussion.isReacted;
+    startTransition(async () => {
+      applyOptimistic({ type: "react-discussion" });
+      try {
+        const api = await getApiClient();
+        if (wasReacted) {
+          await api.api.discussions[":id"].react.$delete({ param: { id } });
+        } else {
+          await api.api.discussions[":id"].react.$post({ param: { id } });
+        }
+        setDiscussion((prev) =>
+          prev
+            ? { ...prev, isReacted: !wasReacted, reactionsCount: prev.reactionsCount + (wasReacted ? -1 : 1) }
+            : prev,
+        );
+      } catch {
+        toast.error("Failed to react");
       }
-      fetchDiscussion();
-    } catch { toast.error("Failed to react"); }
-    finally { setIsReacting(false); }
+    });
   }
 
   async function handleAddComment() {
@@ -115,39 +156,66 @@ function DiscussionDetailPage() {
         json: { content: commentText.trim() },
       });
       if (!res.ok) { toast.error("Failed to add comment"); return; }
+      const json = await res.json();
+      const data = (json as { data: ServerComment }).data;
+      const newComment: Comment = { ...data, reactionsCount: 0, isReacted: false };
+      setDiscussion((prev) =>
+        prev ? { ...prev, comments: [...prev.comments, newComment] } : prev,
+      );
       setCommentText("");
-      fetchDiscussion();
     } catch { toast.error("Failed to add comment"); }
     finally { setIsAddingComment(false); }
   }
 
-  async function handleDeleteComment(commentId: string) {
-    try {
-      const api = await getApiClient();
-      const res = await api.api.discussions[":id"].comments[":commentId"].$delete({
-        param: { id, commentId },
-      });
-      if (!res.ok) { toast.error("Failed to delete comment"); return; }
-      toast.success("Comment deleted");
-      fetchDiscussion();
-    } catch { toast.error("Failed to delete comment"); }
+  function handleDeleteComment(commentId: string) {
+    startTransition(async () => {
+      applyOptimistic({ type: "delete-comment", commentId });
+      try {
+        const api = await getApiClient();
+        const res = await api.api.discussions[":id"].comments[":commentId"].$delete({
+          param: { id, commentId },
+        });
+        if (!res.ok) { toast.error("Failed to delete comment"); fetchDiscussion(); return; }
+        setDiscussion((prev) =>
+          prev ? { ...prev, comments: prev.comments.filter((c) => c.id !== commentId) } : prev,
+        );
+        toast.success("Comment deleted");
+      } catch {
+        toast.error("Failed to delete comment");
+        fetchDiscussion();
+      }
+    });
   }
 
-  async function handleReactComment(commentId: string, isReacted: boolean) {
-    try {
-      const api = await getApiClient();
-      if (isReacted) {
-        await api.api.discussions[":id"].comments[":commentId"].react.$delete({
-          param: { id, commentId },
-        });
-      } else {
-        await api.api.discussions[":id"].comments[":commentId"].react.$post({
-          param: { id, commentId },
-        });
+  function handleReactComment(commentId: string, wasReacted: boolean) {
+    startTransition(async () => {
+      applyOptimistic({ type: "react-comment", commentId });
+      try {
+        const api = await getApiClient();
+        if (wasReacted) {
+          await api.api.discussions[":id"].comments[":commentId"].react.$delete({ param: { id, commentId } });
+        } else {
+          await api.api.discussions[":id"].comments[":commentId"].react.$post({ param: { id, commentId } });
+        }
+        setDiscussion((prev) =>
+          prev
+            ? {
+                ...prev,
+                comments: prev.comments.map((c) =>
+                  c.id === commentId
+                    ? { ...c, isReacted: !wasReacted, reactionsCount: c.reactionsCount + (wasReacted ? -1 : 1) }
+                    : c,
+                ),
+              }
+            : prev,
+        );
+      } catch {
+        toast.error("Failed to react");
       }
-      fetchDiscussion();
-    } catch { toast.error("Failed to react"); }
+    });
   }
+
+  const isOwner = discussion?.authorId === user?.id;
 
   function openEditDialog() {
     if (!discussion) return;
@@ -170,9 +238,19 @@ function DiscussionDetailPage() {
         },
       });
       if (!res.ok) { toast.error("Failed to update"); return; }
+      setDiscussion((prev) =>
+        prev
+          ? {
+              ...prev,
+              title: editTitle,
+              content: editContent,
+              category: editCategory as typeof prev.category,
+              updatedAt: new Date().toISOString(),
+            }
+          : prev,
+      );
       toast.success("Discussion updated");
       setEditOpen(false);
-      fetchDiscussion();
     } catch { toast.error("Failed to update"); }
     finally { setIsEditSubmitting(false); }
   }
@@ -193,14 +271,25 @@ function DiscussionDetailPage() {
         json: { content: editCommentText.trim() },
       });
       if (!res.ok) { toast.error("Failed to update comment"); return; }
+      const json = await res.json();
+      const updated = (json as { data: ServerComment }).data;
+      setDiscussion((prev) =>
+        prev
+          ? {
+              ...prev,
+              comments: prev.comments.map((c) =>
+                c.id === editCommentId
+                  ? { ...c, content: updated.content, updatedAt: updated.updatedAt }
+                  : c,
+              ),
+            }
+          : prev,
+      );
       toast.success("Comment updated");
       setEditCommentOpen(false);
-      fetchDiscussion();
     } catch { toast.error("Failed to update comment"); }
     finally { setIsEditCommentSubmitting(false); }
   }
-
-  const isOwner = discussion?.authorId === user?.id;
 
   if (isLoading) {
     return (
@@ -220,7 +309,7 @@ function DiscussionDetailPage() {
     );
   }
 
-  if (!discussion) {
+  if (!discussion || !optimistic) {
     return (
       <div className="mx-auto max-w-3xl px-6 py-8">
         <Link to="/discussions">
@@ -286,15 +375,14 @@ function DiscussionDetailPage() {
         <div className="mt-4 border-t border-border/50 pt-4">
           <button
             onClick={handleReactDiscussion}
-            disabled={isReacting}
             className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-              discussion.isReacted
+              optimistic.isReacted
                 ? "bg-destructive/10 text-destructive"
                 : "bg-secondary text-muted-foreground hover:bg-secondary/80"
             }`}
           >
-            <Heart className={`size-4 ${discussion.isReacted ? `fill-current` : ``}`} />
-            {discussion.reactionsCount}
+            <Heart className={`size-4 ${optimistic.isReacted ? `fill-current` : ``}`} />
+            {optimistic.reactionsCount}
           </button>
         </div>
       </div>
@@ -302,16 +390,16 @@ function DiscussionDetailPage() {
       {/* Comments Section */}
       <div className="space-y-4">
         <h2 className="text-sm font-semibold">
-          Comments ({discussion.comments.length})
+          Comments ({optimistic.comments.length})
         </h2>
 
-        {discussion.comments.length === 0 ? (
+        {optimistic.comments.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">
             No comments yet. Be the first to reply.
           </p>
         ) : (
           <div className="space-y-3">
-            {discussion.comments.map((comment) => {
+            {optimistic.comments.map((comment) => {
               const isCommentOwner = comment.authorId === user?.id;
               return (
                 <div key={comment.id} className="rounded-xl bg-card p-4 shadow-sm ring-1 ring-border/50">

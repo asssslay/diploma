@@ -343,10 +343,29 @@ const app = createRouter()
         throw new HTTPException(404, { message: "Discussion not found" });
       }
 
-      const [comment] = await db
+      const rows = await db
         .insert(discussionComments)
         .values({ discussionId: id, authorId: user.id, content })
-        .returning();
+        .returning({ id: discussionComments.id });
+
+      const insertedId = rows[0]?.id;
+      if (!insertedId) {
+        throw new HTTPException(500, { message: "Failed to create comment" });
+      }
+
+      const [comment] = await db
+        .select({
+          id: discussionComments.id,
+          content: discussionComments.content,
+          authorId: discussionComments.authorId,
+          authorName: profiles.fullName,
+          createdAt: discussionComments.createdAt,
+          updatedAt: discussionComments.updatedAt,
+        })
+        .from(discussionComments)
+        .leftJoin(profiles, eq(discussionComments.authorId, profiles.id))
+        .where(eq(discussionComments.id, insertedId))
+        .limit(1);
 
       return c.json({ success: true, data: comment }, 201);
     },
@@ -381,11 +400,24 @@ const app = createRouter()
         });
       }
 
-      const [comment] = await db
+      await db
         .update(discussionComments)
         .set({ content, updatedAt: sql`now()` })
+        .where(eq(discussionComments.id, commentId));
+
+      const [comment] = await db
+        .select({
+          id: discussionComments.id,
+          content: discussionComments.content,
+          authorId: discussionComments.authorId,
+          authorName: profiles.fullName,
+          createdAt: discussionComments.createdAt,
+          updatedAt: discussionComments.updatedAt,
+        })
+        .from(discussionComments)
+        .leftJoin(profiles, eq(discussionComments.authorId, profiles.id))
         .where(eq(discussionComments.id, commentId))
-        .returning();
+        .limit(1);
 
       return c.json({ success: true, data: comment });
     },
