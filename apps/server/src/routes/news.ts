@@ -35,6 +35,7 @@ const app = createRouter()
           publishedAt: newsPosts.publishedAt,
           viewCount: newsPosts.viewCount,
           createdAt: newsPosts.createdAt,
+          updatedAt: newsPosts.updatedAt,
         })
         .from(newsPosts)
         .leftJoin(profiles, eq(newsPosts.authorId, profiles.id))

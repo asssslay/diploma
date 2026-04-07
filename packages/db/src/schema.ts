@@ -215,6 +215,13 @@ export const newsPosts = pgTable(
       using: sql`public.is_admin()`,
       withCheck: sql`public.is_admin()`,
     }),
+
+    // --- DELETE policies ---
+    pgPolicy("admins_delete_news", {
+      for: "delete",
+      to: authenticatedRole,
+      using: sql`public.is_admin()`,
+    }),
   ],
 );
 

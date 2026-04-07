@@ -330,6 +330,9 @@ function HomePage() {
                               year: "numeric",
                             },
                           )}
+                          {post.updatedAt && new Date(post.updatedAt).getTime() - new Date(post.createdAt).getTime() > 60000 && (
+                            <span> · Edited</span>
+                          )}
                         </p>
                       </div>
                       <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-secondary text-foreground transition-colors group-hover:bg-foreground group-hover:text-background">

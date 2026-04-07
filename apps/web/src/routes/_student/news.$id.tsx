@@ -115,6 +115,16 @@ function NewsDetailPage() {
               day: "numeric",
               year: "numeric",
             })}
+            {post.updatedAt && new Date(post.updatedAt).getTime() - new Date(post.createdAt).getTime() > 60000 && (
+              <span className="text-muted-foreground/60">
+                {" · Edited "}
+                {new Date(post.updatedAt).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                })}
+              </span>
+            )}
           </span>
           <span className="flex items-center gap-1.5">
             <Eye className="size-4" />

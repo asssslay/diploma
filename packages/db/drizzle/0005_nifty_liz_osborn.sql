@@ -1,0 +1,1 @@
+CREATE POLICY "admins_delete_news" ON "news_posts" AS PERMISSIVE FOR DELETE TO "authenticated" USING (public.is_admin());

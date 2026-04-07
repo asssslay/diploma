@@ -1,6 +1,6 @@
 import { zValidator } from "@hono/zod-validator";
 import { HTTPException } from "hono/http-exception";
-import { count, desc, eq } from "drizzle-orm";
+import { count, desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@my-better-t-app/db";
 import { newsPosts, profiles } from "@my-better-t-app/db/schema";
@@ -24,6 +24,12 @@ const createNewsSchema = z.object({
   imageUrl: z.string().url().optional(),
 });
 
+const updateNewsSchema = z.object({
+  title: z.string().min(1).max(200).optional(),
+  content: z.string().min(1).optional(),
+  imageUrl: z.string().url().nullable().optional(),
+});
+
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
@@ -45,6 +51,7 @@ const app = createRouter()
           publishedAt: newsPosts.publishedAt,
           viewCount: newsPosts.viewCount,
           createdAt: newsPosts.createdAt,
+          updatedAt: newsPosts.updatedAt,
         })
         .from(newsPosts)
         .leftJoin(profiles, eq(newsPosts.authorId, profiles.id))
@@ -143,6 +150,49 @@ const app = createRouter()
       .returning();
 
     return c.json({ success: true, data: post }, 201);
+  })
+
+  .patch(
+    "/:id",
+    zValidator("param", idParamSchema, validationHook),
+    zValidator("json", updateNewsSchema, validationHook),
+    async (c) => {
+      const { id } = c.req.valid("param");
+      const updates = c.req.valid("json");
+
+      const [existing] = await db
+        .select({ id: newsPosts.id })
+        .from(newsPosts)
+        .where(eq(newsPosts.id, id))
+        .limit(1);
+
+      if (!existing) {
+        throw new HTTPException(404, { message: "News post not found" });
+      }
+
+      const [post] = await db
+        .update(newsPosts)
+        .set({ ...updates, updatedAt: sql`now()` })
+        .where(eq(newsPosts.id, id))
+        .returning();
+
+      return c.json({ success: true, data: post });
+    },
+  )
+
+  .delete("/:id", zValidator("param", idParamSchema, validationHook), async (c) => {
+    const { id } = c.req.valid("param");
+
+    const deleted = await db
+      .delete(newsPosts)
+      .where(eq(newsPosts.id, id))
+      .returning();
+
+    if (deleted.length === 0) {
+      throw new HTTPException(404, { message: "News post not found" });
+    }
+
+    return c.json({ success: true, data: { id } });
   });
 
 export default app;
