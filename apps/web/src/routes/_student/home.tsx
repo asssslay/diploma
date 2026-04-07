@@ -10,6 +10,7 @@ import {
   Newspaper,
   Search,
   Sparkles,
+  User,
   Users,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -171,9 +172,18 @@ function HomePage() {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
           <h2 className="text-lg font-bold tracking-tight">UniCommunity</h2>
           <div className="flex items-center gap-3">
-            <span className="text-sm text-muted-foreground">
+            <Link
+              to="/profile"
+              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+            >
               {profile?.fullName}
-            </span>
+            </Link>
+            <Link
+              to="/profile"
+              className="flex size-9 items-center justify-center rounded-lg bg-secondary text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+            >
+              <User className="size-4" />
+            </Link>
             <button
               onClick={() => signOut()}
               className="flex size-9 items-center justify-center rounded-lg bg-secondary text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
