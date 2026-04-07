@@ -2,22 +2,39 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   CalendarDays,
+  Camera,
   GraduationCap,
   Mail,
   Pencil,
   Shield,
+  Trash2,
   User,
   Users,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
+import { z } from "zod";
 import type { InferResponseType } from "hono/client";
 import { hc } from "hono/client";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
 import { formatDate } from "@/lib/utils";
 import { getApiClient } from "@/lib/api";
+import { supabase } from "@/lib/supabase";
+import { env } from "@my-better-t-app/env/web";
 import type { AppType } from "server";
 
 type Client = ReturnType<typeof hc<AppType>>;
@@ -35,9 +52,32 @@ const STATUS_BADGE = {
   rejected: { variant: "destructive" as const, label: "Rejected" },
 };
 
+const editSchema = z.object({
+  fullName: z.string().min(1, { message: "Name is required" }).max(100),
+  faculty: z.string().max(200).optional(),
+  group: z.string().max(200).optional(),
+  bio: z.string().max(1000).optional(),
+  interests: z.string().optional(),
+});
+
+type FieldErrors = Partial<Record<keyof z.infer<typeof editSchema>, string>>;
+
 function ProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Edit dialog
+  const [editOpen, setEditOpen] = useState(false);
+  const [fullName, setFullName] = useState("");
+  const [faculty, setFaculty] = useState("");
+  const [group, setGroup] = useState("");
+  const [bio, setBio] = useState("");
+  const [interests, setInterests] = useState("");
+  const [errors, setErrors] = useState<FieldErrors>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Avatar
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
   const fetchProfile = useCallback(async () => {
     setIsLoading(true);
@@ -52,6 +92,85 @@ function ProfilePage() {
   }, []);
 
   useEffect(() => { fetchProfile(); }, [fetchProfile]);
+
+  function openEditDialog() {
+    if (!profile) return;
+    setFullName(profile.fullName ?? "");
+    setFaculty(profile.faculty ?? "");
+    setGroup(profile.group ?? "");
+    setBio(profile.bio ?? "");
+    setInterests((profile.interests ?? []).join(", "));
+    setErrors({});
+    setEditOpen(true);
+  }
+
+  async function handleSave() {
+    const result = editSchema.safeParse({ fullName, faculty, group, bio, interests });
+    if (!result.success) {
+      const fieldErrors: FieldErrors = {};
+      for (const issue of result.error.issues) {
+        const field = issue.path[0] as keyof FieldErrors;
+        if (!fieldErrors[field]) fieldErrors[field] = issue.message;
+      }
+      setErrors(fieldErrors);
+      return;
+    }
+
+    setErrors({});
+    setIsSubmitting(true);
+
+    try {
+      const interestsArray = result.data.interests
+        ? result.data.interests.split(",").map((s) => s.trim()).filter(Boolean)
+        : [];
+
+      const api = await getApiClient();
+      const res = await api.api.profile.me.$patch({
+        json: {
+          fullName: result.data.fullName,
+          faculty: result.data.faculty || null,
+          group: result.data.group || null,
+          bio: result.data.bio || null,
+          interests: interestsArray,
+        },
+      });
+
+      if (!res.ok) { toast.error("Failed to update profile"); return; }
+
+      const json = (await res.json()) as MeResponse;
+      setProfile(json.data);
+      toast.success("Profile updated");
+      setEditOpen(false);
+    } catch { toast.error("Failed to update profile"); }
+    finally { setIsSubmitting(false); }
+  }
+
+  async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingAvatar(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const formData = new FormData();
+      formData.append("avatar", file);
+
+      const uploadRes = await fetch(
+        `${env.VITE_SERVER_URL}/api/profile/upload-avatar`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${session?.access_token}` },
+          body: formData,
+        },
+      );
+
+      if (!uploadRes.ok) { toast.error("Failed to upload avatar"); return; }
+
+      toast.success("Avatar updated");
+      fetchProfile();
+    } catch { toast.error("Failed to upload avatar"); }
+    finally { setIsUploadingAvatar(false); }
+  }
 
   if (isLoading) {
     return (
@@ -92,8 +211,33 @@ function ProfilePage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-5">
-          <div className="flex size-20 items-center justify-center rounded-full bg-accent">
-            <User className="size-9 text-accent-foreground" />
+          <div className="group relative">
+            {profile.avatarUrl ? (
+              <img
+                src={profile.avatarUrl}
+                alt={profile.fullName ?? "Avatar"}
+                className="size-20 rounded-full object-cover"
+              />
+            ) : (
+              <div className="flex size-20 items-center justify-center rounded-full bg-accent">
+                <User className="size-9 text-accent-foreground" />
+              </div>
+            )}
+            <label className="absolute inset-0 flex cursor-pointer items-center justify-center rounded-full bg-foreground/0 transition-colors group-hover:bg-foreground/40">
+              <Camera className="size-5 text-background opacity-0 transition-opacity group-hover:opacity-100" />
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={handleAvatarChange}
+                disabled={isUploadingAvatar}
+              />
+            </label>
+            {isUploadingAvatar && (
+              <div className="absolute inset-0 flex items-center justify-center rounded-full bg-foreground/40">
+                <div className="size-5 animate-spin rounded-full border-2 border-background border-t-transparent" />
+              </div>
+            )}
           </div>
           <div>
             <h1 className="text-2xl font-bold tracking-tight">
@@ -104,7 +248,7 @@ function ProfilePage() {
             </p>
           </div>
         </div>
-        <Button variant="outline" className="rounded-lg gap-2" disabled>
+        <Button variant="outline" className="rounded-lg gap-2" onClick={openEditDialog}>
           <Pencil className="size-4" />
           Edit Profile
         </Button>
@@ -177,7 +321,7 @@ function ProfilePage() {
 
           <div className="flex items-center gap-3 rounded-lg bg-background p-4">
             <div className="flex size-10 items-center justify-center rounded-full bg-secondary">
-              <Users className="size-4 text-foreground" />
+              <Shield className="size-4 text-foreground" />
             </div>
             <div>
               <p className="text-[11px] text-muted-foreground">Account Status</p>
@@ -212,6 +356,87 @@ function ProfilePage() {
           </div>
         </div>
       )}
+
+      {/* Edit Dialog */}
+      <Dialog open={editOpen} onOpenChange={(open) => { setEditOpen(open); if (!open) setErrors({}); }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit Profile</DialogTitle>
+            <DialogDescription>
+              Update your profile information. Email, Student ID, and join date cannot be changed.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">Full Name</Label>
+              <Input
+                id="edit-name"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                className="rounded-lg bg-background"
+              />
+              {errors.fullName && <p className="text-xs text-destructive">{errors.fullName}</p>}
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-faculty">Faculty</Label>
+                <Input
+                  id="edit-faculty"
+                  value={faculty}
+                  onChange={(e) => setFaculty(e.target.value)}
+                  placeholder="e.g. Computer Science"
+                  className="rounded-lg bg-background"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-group">Group</Label>
+                <Input
+                  id="edit-group"
+                  value={group}
+                  onChange={(e) => setGroup(e.target.value)}
+                  placeholder="e.g. CS-101"
+                  className="rounded-lg bg-background"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-bio">Bio</Label>
+              <Textarea
+                id="edit-bio"
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                placeholder="Tell us about yourself..."
+                rows={3}
+                className="rounded-lg bg-background"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-interests">Interests</Label>
+              <Input
+                id="edit-interests"
+                value={interests}
+                onChange={(e) => setInterests(e.target.value)}
+                placeholder="e.g. Programming, Design, Music"
+                className="rounded-lg bg-background"
+              />
+              <p className="text-xs text-muted-foreground">Separate with commas</p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" className="rounded-lg" onClick={() => setEditOpen(false)} disabled={isSubmitting}>
+              Cancel
+            </Button>
+            <Button className="rounded-lg" onClick={handleSave} disabled={isSubmitting}>
+              {isSubmitting ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

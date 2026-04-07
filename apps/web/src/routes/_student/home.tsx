@@ -5,12 +5,10 @@ import {
   ArrowRight,
   ArrowUpAZ,
   CalendarDays,
-  LogOut,
   MapPin,
   Newspaper,
   Search,
   Sparkles,
-  User,
   Users,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -55,7 +53,7 @@ function truncate(text: string, maxLength = 150): string {
 }
 
 function HomePage() {
-  const { profile, signOut } = useAuth();
+  const { profile } = useAuth();
 
   const [newsPosts, setNewsPosts] = useState<NewsPost[]>([]);
   const [newsTotal, setNewsTotal] = useState(0);
@@ -166,35 +164,7 @@ function HomePage() {
   }, [eventsList, eventsSearch, eventsSortAsc, eventsFilter]);
 
   return (
-    <div className="min-h-svh bg-background">
-      {/* Top Bar */}
-      <header className="sticky top-0 z-30 border-b border-border/50 bg-background/80 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
-          <h2 className="text-lg font-bold tracking-tight">UniCommunity</h2>
-          <div className="flex items-center gap-3">
-            <Link
-              to="/profile"
-              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-            >
-              {profile?.fullName}
-            </Link>
-            <Link
-              to="/profile"
-              className="flex size-9 items-center justify-center rounded-lg bg-secondary text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-            >
-              <User className="size-4" />
-            </Link>
-            <button
-              onClick={() => signOut()}
-              className="flex size-9 items-center justify-center rounded-lg bg-secondary text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-            >
-              <LogOut className="size-4" />
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <div className="mx-auto max-w-6xl space-y-8 px-6 py-8">
+    <div className="space-y-8 px-8 py-6">
         {/* Hero */}
         <div className="space-y-2">
           <h1 className="text-4xl">
@@ -565,7 +535,6 @@ function HomePage() {
             )}
           </TabsContent>
         </Tabs>
-      </div>
     </div>
   );
 }

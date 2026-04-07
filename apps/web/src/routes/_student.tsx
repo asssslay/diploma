@@ -4,6 +4,7 @@ import { Clock, XCircle } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/auth";
 import { Button } from "@/components/ui/button";
+import { StudentSidebar } from "@/components/student-sidebar";
 
 export const Route = createFileRoute("/_student")({
   beforeLoad: async () => {
@@ -92,5 +93,12 @@ function StudentLayout() {
     );
   }
 
-  return <Outlet />;
+  return (
+    <div className="flex min-h-svh bg-background">
+      <StudentSidebar />
+      <main className="flex-1 overflow-auto">
+        <Outlet />
+      </main>
+    </div>
+  );
 }
