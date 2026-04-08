@@ -66,6 +66,48 @@ const app = createRouter()
     });
   })
 
+  .get("/:id", zValidator("param", idParamSchema, validationHook), async (c) => {
+    const { id } = c.req.valid("param");
+
+    const [discussion] = await db
+      .select({
+        id: discussions.id,
+        title: discussions.title,
+        content: discussions.content,
+        category: discussions.category,
+        authorName: profiles.fullName,
+        viewCount: discussions.viewCount,
+        createdAt: discussions.createdAt,
+        updatedAt: discussions.updatedAt,
+      })
+      .from(discussions)
+      .leftJoin(profiles, eq(discussions.authorId, profiles.id))
+      .where(eq(discussions.id, id))
+      .limit(1);
+
+    if (!discussion) {
+      throw new HTTPException(404, { message: "Discussion not found" });
+    }
+
+    const comments = await db
+      .select({
+        id: discussionComments.id,
+        content: discussionComments.content,
+        authorName: profiles.fullName,
+        createdAt: discussionComments.createdAt,
+        updatedAt: discussionComments.updatedAt,
+      })
+      .from(discussionComments)
+      .leftJoin(profiles, eq(discussionComments.authorId, profiles.id))
+      .where(eq(discussionComments.discussionId, id))
+      .orderBy(discussionComments.createdAt);
+
+    return c.json({
+      success: true,
+      data: { ...discussion, comments, commentCount: comments.length },
+    });
+  })
+
   .delete(
     "/:id",
     zValidator("param", idParamSchema, validationHook),
