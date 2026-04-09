@@ -24,10 +24,10 @@ import { Route as AdminAuthenticatedStudentsRouteImport } from './routes/admin/_
 import { Route as AdminAuthenticatedNewsRouteImport } from './routes/admin/_authenticated/news'
 import { Route as AdminAuthenticatedEventsRouteImport } from './routes/admin/_authenticated/events'
 import { Route as AdminAuthenticatedDiscussionsRouteImport } from './routes/admin/_authenticated/discussions'
-import { Route as StudentProfileIdRouteImport } from './routes/_student/profile.$id'
-import { Route as StudentNewsIdRouteImport } from './routes/_student/news.$id'
-import { Route as StudentEventsIdRouteImport } from './routes/_student/events.$id'
-import { Route as StudentDiscussionIdRouteImport } from './routes/_student/discussion.$id'
+import { Route as StudentProfileProfileIdRouteImport } from './routes/_student/profile.$profileId'
+import { Route as StudentNewsNewsIdRouteImport } from './routes/_student/news.$newsId'
+import { Route as StudentEventsEventIdRouteImport } from './routes/_student/events.$eventId'
+import { Route as StudentDiscussionsDiscussionIdRouteImport } from './routes/_student/discussions_.$discussionId'
 
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
@@ -105,26 +105,27 @@ const AdminAuthenticatedDiscussionsRoute =
     path: '/discussions',
     getParentRoute: () => AdminAuthenticatedRoute,
   } as any)
-const StudentProfileIdRoute = StudentProfileIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
+const StudentProfileProfileIdRoute = StudentProfileProfileIdRouteImport.update({
+  id: '/$profileId',
+  path: '/$profileId',
   getParentRoute: () => StudentProfileRoute,
 } as any)
-const StudentNewsIdRoute = StudentNewsIdRouteImport.update({
-  id: '/news/$id',
-  path: '/news/$id',
+const StudentNewsNewsIdRoute = StudentNewsNewsIdRouteImport.update({
+  id: '/news/$newsId',
+  path: '/news/$newsId',
   getParentRoute: () => StudentRoute,
 } as any)
-const StudentEventsIdRoute = StudentEventsIdRouteImport.update({
-  id: '/events/$id',
-  path: '/events/$id',
+const StudentEventsEventIdRoute = StudentEventsEventIdRouteImport.update({
+  id: '/events/$eventId',
+  path: '/events/$eventId',
   getParentRoute: () => StudentRoute,
 } as any)
-const StudentDiscussionIdRoute = StudentDiscussionIdRouteImport.update({
-  id: '/discussion/$id',
-  path: '/discussion/$id',
-  getParentRoute: () => StudentRoute,
-} as any)
+const StudentDiscussionsDiscussionIdRoute =
+  StudentDiscussionsDiscussionIdRouteImport.update({
+    id: '/discussions_/$discussionId',
+    path: '/discussions/$discussionId',
+    getParentRoute: () => StudentRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -135,10 +136,10 @@ export interface FileRoutesByFullPath {
   '/home': typeof StudentHomeRoute
   '/profile': typeof StudentProfileRouteWithChildren
   '/admin/login': typeof AdminLoginRoute
-  '/discussion/$id': typeof StudentDiscussionIdRoute
-  '/events/$id': typeof StudentEventsIdRoute
-  '/news/$id': typeof StudentNewsIdRoute
-  '/profile/$id': typeof StudentProfileIdRoute
+  '/discussions/$discussionId': typeof StudentDiscussionsDiscussionIdRoute
+  '/events/$eventId': typeof StudentEventsEventIdRoute
+  '/news/$newsId': typeof StudentNewsNewsIdRoute
+  '/profile/$profileId': typeof StudentProfileProfileIdRoute
   '/admin/discussions': typeof AdminAuthenticatedDiscussionsRoute
   '/admin/events': typeof AdminAuthenticatedEventsRoute
   '/admin/news': typeof AdminAuthenticatedNewsRoute
@@ -154,10 +155,10 @@ export interface FileRoutesByTo {
   '/home': typeof StudentHomeRoute
   '/profile': typeof StudentProfileRouteWithChildren
   '/admin/login': typeof AdminLoginRoute
-  '/discussion/$id': typeof StudentDiscussionIdRoute
-  '/events/$id': typeof StudentEventsIdRoute
-  '/news/$id': typeof StudentNewsIdRoute
-  '/profile/$id': typeof StudentProfileIdRoute
+  '/discussions/$discussionId': typeof StudentDiscussionsDiscussionIdRoute
+  '/events/$eventId': typeof StudentEventsEventIdRoute
+  '/news/$newsId': typeof StudentNewsNewsIdRoute
+  '/profile/$profileId': typeof StudentProfileProfileIdRoute
   '/admin/discussions': typeof AdminAuthenticatedDiscussionsRoute
   '/admin/events': typeof AdminAuthenticatedEventsRoute
   '/admin/news': typeof AdminAuthenticatedNewsRoute
@@ -175,10 +176,10 @@ export interface FileRoutesById {
   '/_student/profile': typeof StudentProfileRouteWithChildren
   '/admin/_authenticated': typeof AdminAuthenticatedRouteWithChildren
   '/admin/login': typeof AdminLoginRoute
-  '/_student/discussion/$id': typeof StudentDiscussionIdRoute
-  '/_student/events/$id': typeof StudentEventsIdRoute
-  '/_student/news/$id': typeof StudentNewsIdRoute
-  '/_student/profile/$id': typeof StudentProfileIdRoute
+  '/_student/discussions_/$discussionId': typeof StudentDiscussionsDiscussionIdRoute
+  '/_student/events/$eventId': typeof StudentEventsEventIdRoute
+  '/_student/news/$newsId': typeof StudentNewsNewsIdRoute
+  '/_student/profile/$profileId': typeof StudentProfileProfileIdRoute
   '/admin/_authenticated/discussions': typeof AdminAuthenticatedDiscussionsRoute
   '/admin/_authenticated/events': typeof AdminAuthenticatedEventsRoute
   '/admin/_authenticated/news': typeof AdminAuthenticatedNewsRoute
@@ -196,10 +197,10 @@ export interface FileRouteTypes {
     | '/home'
     | '/profile'
     | '/admin/login'
-    | '/discussion/$id'
-    | '/events/$id'
-    | '/news/$id'
-    | '/profile/$id'
+    | '/discussions/$discussionId'
+    | '/events/$eventId'
+    | '/news/$newsId'
+    | '/profile/$profileId'
     | '/admin/discussions'
     | '/admin/events'
     | '/admin/news'
@@ -215,10 +216,10 @@ export interface FileRouteTypes {
     | '/home'
     | '/profile'
     | '/admin/login'
-    | '/discussion/$id'
-    | '/events/$id'
-    | '/news/$id'
-    | '/profile/$id'
+    | '/discussions/$discussionId'
+    | '/events/$eventId'
+    | '/news/$newsId'
+    | '/profile/$profileId'
     | '/admin/discussions'
     | '/admin/events'
     | '/admin/news'
@@ -235,10 +236,10 @@ export interface FileRouteTypes {
     | '/_student/profile'
     | '/admin/_authenticated'
     | '/admin/login'
-    | '/_student/discussion/$id'
-    | '/_student/events/$id'
-    | '/_student/news/$id'
-    | '/_student/profile/$id'
+    | '/_student/discussions_/$discussionId'
+    | '/_student/events/$eventId'
+    | '/_student/news/$newsId'
+    | '/_student/profile/$profileId'
     | '/admin/_authenticated/discussions'
     | '/admin/_authenticated/events'
     | '/admin/_authenticated/news'
@@ -361,32 +362,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAuthenticatedDiscussionsRouteImport
       parentRoute: typeof AdminAuthenticatedRoute
     }
-    '/_student/profile/$id': {
-      id: '/_student/profile/$id'
-      path: '/$id'
-      fullPath: '/profile/$id'
-      preLoaderRoute: typeof StudentProfileIdRouteImport
+    '/_student/profile/$profileId': {
+      id: '/_student/profile/$profileId'
+      path: '/$profileId'
+      fullPath: '/profile/$profileId'
+      preLoaderRoute: typeof StudentProfileProfileIdRouteImport
       parentRoute: typeof StudentProfileRoute
     }
-    '/_student/news/$id': {
-      id: '/_student/news/$id'
-      path: '/news/$id'
-      fullPath: '/news/$id'
-      preLoaderRoute: typeof StudentNewsIdRouteImport
+    '/_student/news/$newsId': {
+      id: '/_student/news/$newsId'
+      path: '/news/$newsId'
+      fullPath: '/news/$newsId'
+      preLoaderRoute: typeof StudentNewsNewsIdRouteImport
       parentRoute: typeof StudentRoute
     }
-    '/_student/events/$id': {
-      id: '/_student/events/$id'
-      path: '/events/$id'
-      fullPath: '/events/$id'
-      preLoaderRoute: typeof StudentEventsIdRouteImport
+    '/_student/events/$eventId': {
+      id: '/_student/events/$eventId'
+      path: '/events/$eventId'
+      fullPath: '/events/$eventId'
+      preLoaderRoute: typeof StudentEventsEventIdRouteImport
       parentRoute: typeof StudentRoute
     }
-    '/_student/discussion/$id': {
-      id: '/_student/discussion/$id'
-      path: '/discussion/$id'
-      fullPath: '/discussion/$id'
-      preLoaderRoute: typeof StudentDiscussionIdRouteImport
+    '/_student/discussions_/$discussionId': {
+      id: '/_student/discussions_/$discussionId'
+      path: '/discussions/$discussionId'
+      fullPath: '/discussions/$discussionId'
+      preLoaderRoute: typeof StudentDiscussionsDiscussionIdRouteImport
       parentRoute: typeof StudentRoute
     }
   }
@@ -426,11 +427,11 @@ const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
 )
 
 interface StudentProfileRouteChildren {
-  StudentProfileIdRoute: typeof StudentProfileIdRoute
+  StudentProfileProfileIdRoute: typeof StudentProfileProfileIdRoute
 }
 
 const StudentProfileRouteChildren: StudentProfileRouteChildren = {
-  StudentProfileIdRoute: StudentProfileIdRoute,
+  StudentProfileProfileIdRoute: StudentProfileProfileIdRoute,
 }
 
 const StudentProfileRouteWithChildren = StudentProfileRoute._addFileChildren(
@@ -441,18 +442,18 @@ interface StudentRouteChildren {
   StudentDiscussionsRoute: typeof StudentDiscussionsRoute
   StudentHomeRoute: typeof StudentHomeRoute
   StudentProfileRoute: typeof StudentProfileRouteWithChildren
-  StudentDiscussionIdRoute: typeof StudentDiscussionIdRoute
-  StudentEventsIdRoute: typeof StudentEventsIdRoute
-  StudentNewsIdRoute: typeof StudentNewsIdRoute
+  StudentDiscussionsDiscussionIdRoute: typeof StudentDiscussionsDiscussionIdRoute
+  StudentEventsEventIdRoute: typeof StudentEventsEventIdRoute
+  StudentNewsNewsIdRoute: typeof StudentNewsNewsIdRoute
 }
 
 const StudentRouteChildren: StudentRouteChildren = {
   StudentDiscussionsRoute: StudentDiscussionsRoute,
   StudentHomeRoute: StudentHomeRoute,
   StudentProfileRoute: StudentProfileRouteWithChildren,
-  StudentDiscussionIdRoute: StudentDiscussionIdRoute,
-  StudentEventsIdRoute: StudentEventsIdRoute,
-  StudentNewsIdRoute: StudentNewsIdRoute,
+  StudentDiscussionsDiscussionIdRoute: StudentDiscussionsDiscussionIdRoute,
+  StudentEventsEventIdRoute: StudentEventsEventIdRoute,
+  StudentNewsNewsIdRoute: StudentNewsNewsIdRoute,
 }
 
 const StudentRouteWithChildren =

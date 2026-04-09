@@ -26,12 +26,12 @@ type ProfileResponse = Extract<
 >;
 type PublicProfile = ProfileResponse["data"];
 
-export const Route = createFileRoute("/_student/profile/$id")({
+export const Route = createFileRoute("/_student/profile/$profileId")({
   component: PublicProfilePage,
 });
 
 function PublicProfilePage() {
-  const { id } = Route.useParams();
+  const { profileId } = Route.useParams();
   const [profile, setProfile] = useState<PublicProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -39,13 +39,13 @@ function PublicProfilePage() {
     setIsLoading(true);
     try {
       const api = await getApiClient();
-      const res = await api.api.profile[":id"].$get({ param: { id } });
+      const res = await api.api.profile[":id"].$get({ param: { id: profileId } });
       if (!res.ok) { toast.error("Failed to load profile"); return; }
       const json = (await res.json()) as ProfileResponse;
       setProfile(json.data);
     } catch { toast.error("Failed to load profile"); }
     finally { setIsLoading(false); }
-  }, [id]);
+  }, [profileId]);
 
   useEffect(() => { fetchProfile(); }, [fetchProfile]);
 

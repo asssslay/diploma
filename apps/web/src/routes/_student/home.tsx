@@ -287,8 +287,8 @@ function HomePage() {
                 {filteredNews.map((post) => (
                   <Link
                     key={post.id}
-                    to="/news/$id"
-                    params={{ id: post.id }}
+                    to="/news/$newsId"
+                    params={{ newsId: post.id }}
                     className="group block"
                   >
                     <div className="flex items-center gap-5 rounded-xl bg-card px-5 py-4 shadow-sm ring-1 ring-border/50 transition-all group-hover:shadow-md">
@@ -441,8 +441,8 @@ function HomePage() {
                   return (
                     <Link
                       key={event.id}
-                      to="/events/$id"
-                      params={{ id: event.id }}
+                      to="/events/$eventId"
+                      params={{ eventId: event.id }}
                       className="group block"
                     >
                       <div className="flex h-full flex-col justify-between rounded-xl bg-card p-5 shadow-sm ring-1 ring-border/50 transition-all group-hover:-translate-y-0.5 group-hover:shadow-md">

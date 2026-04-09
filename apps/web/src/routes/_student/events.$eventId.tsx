@@ -25,12 +25,12 @@ type DetailResponse = Extract<
 >;
 type EventDetail = DetailResponse["data"];
 
-export const Route = createFileRoute("/_student/events/$id")({
+export const Route = createFileRoute("/_student/events/$eventId")({
   component: EventDetailPage,
 });
 
 function EventDetailPage() {
-  const { id } = Route.useParams();
+  const { eventId } = Route.useParams();
   const [event, setEvent] = useState<EventDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRegistering, setIsRegistering] = useState(false);
@@ -39,7 +39,7 @@ function EventDetailPage() {
     setIsLoading(true);
     try {
       const api = await getApiClient();
-      const res = await api.api.events[":id"].$get({ param: { id } });
+      const res = await api.api.events[":id"].$get({ param: { id: eventId } });
 
       if (!res.ok) {
         toast.error("Failed to load event");
@@ -53,7 +53,7 @@ function EventDetailPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [id]);
+  }, [eventId]);
 
   useEffect(() => {
     fetchEvent();
@@ -64,7 +64,7 @@ function EventDetailPage() {
     try {
       const api = await getApiClient();
       const res = await api.api.events[":id"].register.$post({
-        param: { id },
+        param: { id: eventId },
       });
 
       if (!res.ok) {
@@ -86,7 +86,7 @@ function EventDetailPage() {
     try {
       const api = await getApiClient();
       const res = await api.api.events[":id"].register.$delete({
-        param: { id },
+        param: { id: eventId },
       });
 
       if (!res.ok) {

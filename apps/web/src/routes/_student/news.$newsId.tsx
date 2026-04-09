@@ -19,12 +19,12 @@ type DetailResponse = Extract<
 >;
 type NewsPostDetail = DetailResponse["data"];
 
-export const Route = createFileRoute("/_student/news/$id")({
+export const Route = createFileRoute("/_student/news/$newsId")({
   component: NewsDetailPage,
 });
 
 function NewsDetailPage() {
-  const { id } = Route.useParams();
+  const { newsId } = Route.useParams();
   const [post, setPost] = useState<NewsPostDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -32,7 +32,7 @@ function NewsDetailPage() {
     setIsLoading(true);
     try {
       const api = await getApiClient();
-      const res = await api.api.news[":id"].$get({ param: { id } });
+      const res = await api.api.news[":id"].$get({ param: { id: newsId } });
 
       if (!res.ok) {
         toast.error("Failed to load news post");
@@ -46,7 +46,7 @@ function NewsDetailPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [id]);
+  }, [newsId]);
 
   useEffect(() => {
     fetchPost();

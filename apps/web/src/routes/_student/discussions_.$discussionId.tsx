@@ -40,7 +40,7 @@ type Comment = DiscussionDetail["comments"][number];
 
 type ServerComment = Omit<Comment, "reactionsCount" | "isReacted">;
 
-export const Route = createFileRoute("/_student/discussion/$id")({
+export const Route = createFileRoute("/_student/discussions_/$discussionId")({
   component: DiscussionDetailPage,
 });
 
@@ -53,7 +53,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 function DiscussionDetailPage() {
-  const { id } = Route.useParams();
+  const { discussionId } = Route.useParams();
   const { user } = useAuth();
   const [discussion, setDiscussion] = useState<DiscussionDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -113,13 +113,13 @@ function DiscussionDetailPage() {
     setIsLoading(true);
     try {
       const api = await getApiClient();
-      const res = await api.api.discussions[":id"].$get({ param: { id } });
+      const res = await api.api.discussions[":id"].$get({ param: { id: discussionId } });
       if (!res.ok) { toast.error("Failed to load discussion"); return; }
       const json = (await res.json()) as DetailResponse;
       setDiscussion(json.data);
     } catch { toast.error("Failed to load discussion"); }
     finally { setIsLoading(false); }
-  }, [id]);
+  }, [discussionId]);
 
   useEffect(() => { fetchDiscussion(); }, [fetchDiscussion]);
 
@@ -131,9 +131,9 @@ function DiscussionDetailPage() {
       try {
         const api = await getApiClient();
         if (wasReacted) {
-          await api.api.discussions[":id"].react.$delete({ param: { id } });
+          await api.api.discussions[":id"].react.$delete({ param: { id: discussionId } });
         } else {
-          await api.api.discussions[":id"].react.$post({ param: { id } });
+          await api.api.discussions[":id"].react.$post({ param: { id: discussionId } });
         }
         setDiscussion((prev) =>
           prev
@@ -152,7 +152,7 @@ function DiscussionDetailPage() {
     try {
       const api = await getApiClient();
       const res = await api.api.discussions[":id"].comments.$post({
-        param: { id },
+        param: { id: discussionId },
         json: { content: commentText.trim() },
       });
       if (!res.ok) { toast.error("Failed to add comment"); return; }
@@ -173,7 +173,7 @@ function DiscussionDetailPage() {
       try {
         const api = await getApiClient();
         const res = await api.api.discussions[":id"].comments[":commentId"].$delete({
-          param: { id, commentId },
+          param: { id: discussionId, commentId },
         });
         if (!res.ok) { toast.error("Failed to delete comment"); fetchDiscussion(); return; }
         setDiscussion((prev) =>
@@ -193,9 +193,9 @@ function DiscussionDetailPage() {
       try {
         const api = await getApiClient();
         if (wasReacted) {
-          await api.api.discussions[":id"].comments[":commentId"].react.$delete({ param: { id, commentId } });
+          await api.api.discussions[":id"].comments[":commentId"].react.$delete({ param: { id: discussionId, commentId } });
         } else {
-          await api.api.discussions[":id"].comments[":commentId"].react.$post({ param: { id, commentId } });
+          await api.api.discussions[":id"].comments[":commentId"].react.$post({ param: { id: discussionId, commentId } });
         }
         setDiscussion((prev) =>
           prev
@@ -230,7 +230,7 @@ function DiscussionDetailPage() {
     try {
       const api = await getApiClient();
       const res = await api.api.discussions[":id"].$patch({
-        param: { id },
+        param: { id: discussionId },
         json: {
           title: editTitle,
           content: editContent,
@@ -267,7 +267,7 @@ function DiscussionDetailPage() {
     try {
       const api = await getApiClient();
       const res = await api.api.discussions[":id"].comments[":commentId"].$patch({
-        param: { id, commentId: editCommentId },
+        param: { id: discussionId, commentId: editCommentId },
         json: { content: editCommentText.trim() },
       });
       if (!res.ok) { toast.error("Failed to update comment"); return; }
@@ -346,7 +346,7 @@ function DiscussionDetailPage() {
               </Badge>
             </div>
             <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-              <Link to="/profile/$id" params={{ id: discussion.authorId }} className="flex items-center gap-1.5 hover:text-foreground">
+              <Link to="/profile/$profileId" params={{ profileId: discussion.authorId }} className="flex items-center gap-1.5 hover:text-foreground">
                 <User className="size-4" />
                 {discussion.authorName ?? "Unknown"}
               </Link>
@@ -405,7 +405,7 @@ function DiscussionDetailPage() {
                 <div key={comment.id} className="rounded-xl bg-card p-4 shadow-sm ring-1 ring-border/50">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2 text-sm">
-                      <Link to="/profile/$id" params={{ id: comment.authorId }} className="font-medium hover:underline">
+                      <Link to="/profile/$profileId" params={{ profileId: comment.authorId }} className="font-medium hover:underline">
                         {comment.authorName ?? "Unknown"}
                       </Link>
                       <span className="text-xs text-muted-foreground">
