@@ -343,3 +343,235 @@ export const eventRegistrations = pgTable(
     }),
   ],
 );
+
+export const discussionCategoryEnum = pgEnum("discussion_category", [
+  "general",
+  "academic",
+  "social",
+  "help",
+  "feedback",
+]);
+
+export const discussions = pgTable(
+  "discussions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    title: text("title").notNull(),
+    content: text("content").notNull(),
+    category: discussionCategoryEnum("category").notNull(),
+    authorId: uuid("author_id").notNull(),
+    viewCount: integer("view_count").default(0).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.authorId],
+      foreignColumns: [profiles.id],
+      name: "discussions_author_id_profiles_fk",
+    }).onDelete("cascade"),
+
+    // --- SELECT policies ---
+    pgPolicy("authenticated_read_discussions", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`true`,
+    }),
+
+    // --- INSERT policies ---
+    pgPolicy("students_insert_own_discussion", {
+      for: "insert",
+      to: authenticatedRole,
+      withCheck: sql`${table.authorId} = ${authUid}`,
+    }),
+
+    // --- UPDATE policies ---
+    pgPolicy("students_update_own_discussion", {
+      for: "update",
+      to: authenticatedRole,
+      using: sql`${table.authorId} = ${authUid}`,
+      withCheck: sql`${table.authorId} = ${authUid}`,
+    }),
+
+    // --- DELETE policies ---
+    pgPolicy("admins_delete_discussions", {
+      for: "delete",
+      to: authenticatedRole,
+      using: sql`public.is_admin()`,
+    }),
+  ],
+);
+
+export const discussionComments = pgTable(
+  "discussion_comments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    discussionId: uuid("discussion_id").notNull(),
+    authorId: uuid("author_id").notNull(),
+    content: text("content").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.discussionId],
+      foreignColumns: [discussions.id],
+      name: "discussion_comments_discussion_id_fk",
+    }).onDelete("cascade"),
+
+    foreignKey({
+      columns: [table.authorId],
+      foreignColumns: [profiles.id],
+      name: "discussion_comments_author_id_profiles_fk",
+    }).onDelete("cascade"),
+
+    // --- SELECT policies ---
+    pgPolicy("authenticated_read_discussion_comments", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`true`,
+    }),
+
+    // --- INSERT policies ---
+    pgPolicy("students_insert_own_comment", {
+      for: "insert",
+      to: authenticatedRole,
+      withCheck: sql`${table.authorId} = ${authUid}`,
+    }),
+
+    // --- UPDATE policies ---
+    pgPolicy("students_update_own_comment", {
+      for: "update",
+      to: authenticatedRole,
+      using: sql`${table.authorId} = ${authUid}`,
+      withCheck: sql`${table.authorId} = ${authUid}`,
+    }),
+
+    // --- DELETE policies ---
+    pgPolicy("students_delete_own_comment", {
+      for: "delete",
+      to: authenticatedRole,
+      using: sql`${table.authorId} = ${authUid}`,
+    }),
+
+    pgPolicy("admins_delete_comments", {
+      for: "delete",
+      to: authenticatedRole,
+      using: sql`public.is_admin()`,
+    }),
+  ],
+);
+
+export const discussionReactions = pgTable(
+  "discussion_reactions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    discussionId: uuid("discussion_id").notNull(),
+    userId: uuid("user_id").notNull(),
+    type: text("type").notNull().default("like"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.discussionId],
+      foreignColumns: [discussions.id],
+      name: "discussion_reactions_discussion_id_fk",
+    }).onDelete("cascade"),
+
+    foreignKey({
+      columns: [table.userId],
+      foreignColumns: [profiles.id],
+      name: "discussion_reactions_user_id_profiles_fk",
+    }).onDelete("cascade"),
+
+    unique("discussion_reactions_unique").on(
+      table.discussionId,
+      table.userId,
+      table.type,
+    ),
+
+    // --- SELECT policies ---
+    pgPolicy("authenticated_read_discussion_reactions", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`true`,
+    }),
+
+    // --- INSERT policies ---
+    pgPolicy("students_insert_own_reaction", {
+      for: "insert",
+      to: authenticatedRole,
+      withCheck: sql`${table.userId} = ${authUid}`,
+    }),
+
+    // --- DELETE policies ---
+    pgPolicy("students_delete_own_reaction", {
+      for: "delete",
+      to: authenticatedRole,
+      using: sql`${table.userId} = ${authUid}`,
+    }),
+  ],
+);
+
+export const commentReactions = pgTable(
+  "comment_reactions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    commentId: uuid("comment_id").notNull(),
+    userId: uuid("user_id").notNull(),
+    type: text("type").notNull().default("like"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.commentId],
+      foreignColumns: [discussionComments.id],
+      name: "comment_reactions_comment_id_fk",
+    }).onDelete("cascade"),
+
+    foreignKey({
+      columns: [table.userId],
+      foreignColumns: [profiles.id],
+      name: "comment_reactions_user_id_profiles_fk",
+    }).onDelete("cascade"),
+
+    unique("comment_reactions_unique").on(
+      table.commentId,
+      table.userId,
+      table.type,
+    ),
+
+    // --- SELECT policies ---
+    pgPolicy("authenticated_read_comment_reactions", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`true`,
+    }),
+
+    // --- INSERT policies ---
+    pgPolicy("students_insert_own_comment_reaction", {
+      for: "insert",
+      to: authenticatedRole,
+      withCheck: sql`${table.userId} = ${authUid}`,
+    }),
+
+    // --- DELETE policies ---
+    pgPolicy("students_delete_own_comment_reaction", {
+      for: "delete",
+      to: authenticatedRole,
+      using: sql`${table.userId} = ${authUid}`,
+    }),
+  ],
+);
