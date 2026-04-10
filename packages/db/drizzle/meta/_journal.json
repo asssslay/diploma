@@ -57,6 +57,13 @@
       "when": 1775574416179,
       "tag": "0007_groovy_raider",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1775824009258,
+      "tag": "0008_bitter_veda",
+      "breakpoints": true
     }
   ]
 }

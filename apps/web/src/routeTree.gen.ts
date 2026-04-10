@@ -17,6 +17,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminLoginRouteImport } from './routes/admin/login'
 import { Route as AdminAuthenticatedRouteImport } from './routes/admin/_authenticated'
 import { Route as StudentProfileRouteImport } from './routes/_student/profile'
+import { Route as StudentNotesDeadlinesRouteImport } from './routes/_student/notes-deadlines'
 import { Route as StudentHomeRouteImport } from './routes/_student/home'
 import { Route as StudentDiscussionsRouteImport } from './routes/_student/discussions'
 import { Route as AdminAuthenticatedIndexRouteImport } from './routes/admin/_authenticated/index'
@@ -65,6 +66,11 @@ const AdminAuthenticatedRoute = AdminAuthenticatedRouteImport.update({
 const StudentProfileRoute = StudentProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => StudentRoute,
+} as any)
+const StudentNotesDeadlinesRoute = StudentNotesDeadlinesRouteImport.update({
+  id: '/notes-deadlines',
+  path: '/notes-deadlines',
   getParentRoute: () => StudentRoute,
 } as any)
 const StudentHomeRoute = StudentHomeRouteImport.update({
@@ -134,6 +140,7 @@ export interface FileRoutesByFullPath {
   '/register': typeof RegisterRoute
   '/discussions': typeof StudentDiscussionsRoute
   '/home': typeof StudentHomeRoute
+  '/notes-deadlines': typeof StudentNotesDeadlinesRoute
   '/profile': typeof StudentProfileRouteWithChildren
   '/admin/login': typeof AdminLoginRoute
   '/discussions/$discussionId': typeof StudentDiscussionsDiscussionIdRoute
@@ -153,6 +160,7 @@ export interface FileRoutesByTo {
   '/register': typeof RegisterRoute
   '/discussions': typeof StudentDiscussionsRoute
   '/home': typeof StudentHomeRoute
+  '/notes-deadlines': typeof StudentNotesDeadlinesRoute
   '/profile': typeof StudentProfileRouteWithChildren
   '/admin/login': typeof AdminLoginRoute
   '/discussions/$discussionId': typeof StudentDiscussionsDiscussionIdRoute
@@ -173,6 +181,7 @@ export interface FileRoutesById {
   '/register': typeof RegisterRoute
   '/_student/discussions': typeof StudentDiscussionsRoute
   '/_student/home': typeof StudentHomeRoute
+  '/_student/notes-deadlines': typeof StudentNotesDeadlinesRoute
   '/_student/profile': typeof StudentProfileRouteWithChildren
   '/admin/_authenticated': typeof AdminAuthenticatedRouteWithChildren
   '/admin/login': typeof AdminLoginRoute
@@ -195,6 +204,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/discussions'
     | '/home'
+    | '/notes-deadlines'
     | '/profile'
     | '/admin/login'
     | '/discussions/$discussionId'
@@ -214,6 +224,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/discussions'
     | '/home'
+    | '/notes-deadlines'
     | '/profile'
     | '/admin/login'
     | '/discussions/$discussionId'
@@ -233,6 +244,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/_student/discussions'
     | '/_student/home'
+    | '/_student/notes-deadlines'
     | '/_student/profile'
     | '/admin/_authenticated'
     | '/admin/login'
@@ -311,6 +323,13 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof StudentProfileRouteImport
+      parentRoute: typeof StudentRoute
+    }
+    '/_student/notes-deadlines': {
+      id: '/_student/notes-deadlines'
+      path: '/notes-deadlines'
+      fullPath: '/notes-deadlines'
+      preLoaderRoute: typeof StudentNotesDeadlinesRouteImport
       parentRoute: typeof StudentRoute
     }
     '/_student/home': {
@@ -441,6 +460,7 @@ const StudentProfileRouteWithChildren = StudentProfileRoute._addFileChildren(
 interface StudentRouteChildren {
   StudentDiscussionsRoute: typeof StudentDiscussionsRoute
   StudentHomeRoute: typeof StudentHomeRoute
+  StudentNotesDeadlinesRoute: typeof StudentNotesDeadlinesRoute
   StudentProfileRoute: typeof StudentProfileRouteWithChildren
   StudentDiscussionsDiscussionIdRoute: typeof StudentDiscussionsDiscussionIdRoute
   StudentEventsEventIdRoute: typeof StudentEventsEventIdRoute
@@ -450,6 +470,7 @@ interface StudentRouteChildren {
 const StudentRouteChildren: StudentRouteChildren = {
   StudentDiscussionsRoute: StudentDiscussionsRoute,
   StudentHomeRoute: StudentHomeRoute,
+  StudentNotesDeadlinesRoute: StudentNotesDeadlinesRoute,
   StudentProfileRoute: StudentProfileRouteWithChildren,
   StudentDiscussionsDiscussionIdRoute: StudentDiscussionsDiscussionIdRoute,
   StudentEventsEventIdRoute: StudentEventsEventIdRoute,

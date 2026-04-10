@@ -1,11 +1,12 @@
 import { Link, useMatchRoute } from "@tanstack/react-router";
-import { GraduationCap, Home, LogOut, MessageSquare, User } from "lucide-react";
+import { GraduationCap, Home, LogOut, MessageSquare, StickyNote, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/auth";
 
 const navItems = [
   { to: "/home", label: "Home", icon: Home },
   { to: "/discussions", label: "Discussions", icon: MessageSquare },
+  { to: "/notes-deadlines", label: "Notes", icon: StickyNote },
   { to: "/profile", label: "Profile", icon: User },
 ] as const;
 
