@@ -9,6 +9,7 @@ export const env = createEnv({
     SUPABASE_URL: z.url(),
     SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
     RESEND_API_KEY: z.string().min(1),
+    EMAIL_FROM: z.string().min(1),
     NODE_ENV: z
       .enum(["development", "production", "test"])
       .default("development"),

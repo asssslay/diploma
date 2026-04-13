@@ -11,6 +11,11 @@ import {
 import { createRouter } from "@/lib/app";
 import { adminOnly, auth } from "@/middleware/auth";
 import { validationHook } from "@/lib/zod-hook";
+import {
+  accountApprovedEmail,
+  accountRejectedEmail,
+  sendEmail,
+} from "@/lib/emails";
 
 const idParamSchema = z.object({
   id: z.string().uuid(),
@@ -108,7 +113,12 @@ const app = createRouter()
     const admin = c.get("profile");
 
     const [application] = await db
-      .select({ id: studentApplications.id, status: profiles.status })
+      .select({
+        id: studentApplications.id,
+        status: profiles.status,
+        email: profiles.email,
+        fullName: profiles.fullName,
+      })
       .from(studentApplications)
       .innerJoin(profiles, eq(studentApplications.id, profiles.id))
       .where(eq(studentApplications.id, id))
@@ -136,6 +146,10 @@ const app = createRouter()
         .where(eq(studentApplications.id, id));
     });
 
+    sendEmail(application.email, accountApprovedEmail(application.fullName)).catch(
+      (err) => console.error("[email] Unexpected error sending approval:", err),
+    );
+
     return c.json({
       success: true,
       data: { id, status: "approved" },
@@ -152,7 +166,12 @@ const app = createRouter()
       const { reason } = c.req.valid("json");
 
       const [application] = await db
-        .select({ id: studentApplications.id, status: profiles.status })
+        .select({
+          id: studentApplications.id,
+          status: profiles.status,
+          email: profiles.email,
+          fullName: profiles.fullName,
+        })
         .from(studentApplications)
         .innerJoin(profiles, eq(studentApplications.id, profiles.id))
         .where(eq(studentApplications.id, id))
@@ -183,6 +202,13 @@ const app = createRouter()
           })
           .where(eq(studentApplications.id, id));
       });
+
+      sendEmail(
+        application.email,
+        accountRejectedEmail(application.fullName, reason),
+      ).catch((err) =>
+        console.error("[email] Unexpected error sending rejection:", err),
+      );
 
       return c.json({
         success: true,
