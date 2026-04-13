@@ -8,7 +8,10 @@ export const env = createEnv({
     DATABASE_URL: z.url(),
     SUPABASE_URL: z.url(),
     SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
-    NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
+    RESEND_API_KEY: z.string().min(1),
+    NODE_ENV: z
+      .enum(["development", "production", "test"])
+      .default("development"),
   },
   runtimeEnv: process.env,
   emptyStringAsUndefined: true,
