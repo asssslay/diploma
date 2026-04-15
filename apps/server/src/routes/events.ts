@@ -7,6 +7,10 @@ import { events, eventRegistrations, profiles } from "@my-better-t-app/db/schema
 import { createRouter } from "@/lib/app";
 import { auth } from "@/middleware/auth";
 import { validationHook } from "@/lib/zod-hook";
+import {
+  cancelBothEventReminders,
+  scheduleBothEventReminders,
+} from "@/lib/event-reminders";
 
 const idParamSchema = z.object({
   id: z.string().uuid(),
@@ -139,7 +143,13 @@ const app = createRouter()
     const user = c.get("user");
 
     const [event] = await db
-      .select({ id: events.id, maxParticipants: events.maxParticipants })
+      .select({
+        id: events.id,
+        title: events.title,
+        eventDate: events.eventDate,
+        location: events.location,
+        maxParticipants: events.maxParticipants,
+      })
       .from(events)
       .where(eq(events.id, id))
       .limit(1);
@@ -172,9 +182,28 @@ const app = createRouter()
       throw new HTTPException(409, { message: "Event is full" });
     }
 
+    const [studentProfile] = await db
+      .select({ email: profiles.email })
+      .from(profiles)
+      .where(eq(profiles.id, user.id))
+      .limit(1);
+
+    const operationId = crypto.randomUUID();
+    const reminders = studentProfile?.email
+      ? await scheduleBothEventReminders(
+          studentProfile.email,
+          event.title,
+          event.eventDate,
+          event.location,
+          operationId,
+        )
+      : { reminder24hEmailId: null, reminder1hEmailId: null };
+
     await db.insert(eventRegistrations).values({
       eventId: id,
       studentId: user.id,
+      reminder24hEmailId: reminders.reminder24hEmailId,
+      reminder1hEmailId: reminders.reminder1hEmailId,
     });
 
     return c.json({ success: true, data: { eventId: id, registered: true } });
@@ -192,11 +221,17 @@ const app = createRouter()
           eq(eventRegistrations.studentId, user.id),
         ),
       )
-      .returning();
+      .returning({
+        reminder24hEmailId: eventRegistrations.reminder24hEmailId,
+        reminder1hEmailId: eventRegistrations.reminder1hEmailId,
+      });
 
-    if (deleted.length === 0) {
+    const removed = deleted[0];
+    if (!removed) {
       throw new HTTPException(404, { message: "Registration not found" });
     }
+
+    await cancelBothEventReminders(removed);
 
     return c.json({ success: true, data: { eventId: id, registered: false } });
   });

@@ -13,6 +13,10 @@ import { supabaseAdmin } from "@my-better-t-app/db/supabase-admin";
 import { createRouter } from "@/lib/app";
 import { adminOnly, auth } from "@/middleware/auth";
 import { validationHook } from "@/lib/zod-hook";
+import {
+  cancelAllEventReminders,
+  rescheduleAllEventReminders,
+} from "@/lib/event-reminders";
 
 const idParamSchema = z.object({
   id: z.string().uuid(),
@@ -205,7 +209,12 @@ const app = createRouter()
       const updates = c.req.valid("json");
 
       const [existing] = await db
-        .select({ id: events.id })
+        .select({
+          id: events.id,
+          title: events.title,
+          eventDate: events.eventDate,
+          location: events.location,
+        })
         .from(events)
         .where(eq(events.id, id))
         .limit(1);
@@ -214,19 +223,44 @@ const app = createRouter()
         throw new HTTPException(404, { message: "Event not found" });
       }
 
+      const newEventDate =
+        updates.eventDate !== undefined
+          ? new Date(updates.eventDate)
+          : existing.eventDate;
+      const newTitle = updates.title ?? existing.title;
+      const newLocation = updates.location ?? existing.location;
+
+      const titleChanged =
+        updates.title !== undefined && updates.title !== existing.title;
+      const dateChanged =
+        updates.eventDate !== undefined &&
+        newEventDate.getTime() !== existing.eventDate.getTime();
+      const locationChanged =
+        updates.location !== undefined && updates.location !== existing.location;
+
       const setValues: Record<string, unknown> = { updatedAt: sql`now()` };
       if (updates.title !== undefined) setValues.title = updates.title;
       if (updates.description !== undefined) setValues.description = updates.description;
       if (updates.imageUrl !== undefined) setValues.imageUrl = updates.imageUrl;
       if (updates.location !== undefined) setValues.location = updates.location;
       if (updates.maxParticipants !== undefined) setValues.maxParticipants = updates.maxParticipants;
-      if (updates.eventDate !== undefined) setValues.eventDate = new Date(updates.eventDate);
+      if (updates.eventDate !== undefined) setValues.eventDate = newEventDate;
 
       const [event] = await db
         .update(events)
         .set(setValues)
         .where(eq(events.id, id))
         .returning();
+
+      if (titleChanged || dateChanged || locationChanged) {
+        rescheduleAllEventReminders(id, newTitle, newEventDate, newLocation).catch(
+          (err) =>
+            console.error(
+              `[events] Failed to reschedule reminders for event=${id}:`,
+              err,
+            ),
+        );
+      }
 
       return c.json({ success: true, data: event });
     },
@@ -235,14 +269,19 @@ const app = createRouter()
   .delete("/:id", zValidator("param", idParamSchema, validationHook), async (c) => {
     const { id } = c.req.valid("param");
 
-    const deleted = await db
-      .delete(events)
+    const [existing] = await db
+      .select({ id: events.id })
+      .from(events)
       .where(eq(events.id, id))
-      .returning();
+      .limit(1);
 
-    if (deleted.length === 0) {
+    if (!existing) {
       throw new HTTPException(404, { message: "Event not found" });
     }
+
+    await cancelAllEventReminders(id);
+
+    await db.delete(events).where(eq(events.id, id));
 
     return c.json({ success: true, data: { id } });
   });

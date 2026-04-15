@@ -7,7 +7,7 @@ import { deadlines, profiles } from "@my-better-t-app/db/schema";
 import { createRouter } from "@/lib/app";
 import { auth } from "@/middleware/auth";
 import { validationHook } from "@/lib/zod-hook";
-import { cancelDeadlineReminder, scheduleDeadlineReminder } from "@/lib/emails";
+import { cancelScheduledEmail, scheduleDeadlineReminder } from "@/lib/emails";
 
 const idParamSchema = z.object({ id: z.string().uuid() });
 
@@ -62,9 +62,9 @@ async function scheduleBothReminders(
 async function cancelBothReminders(ids: Partial<ReminderIds>): Promise<void> {
   const tasks: Promise<boolean>[] = [];
   if (ids.reminder24hEmailId)
-    tasks.push(cancelDeadlineReminder(ids.reminder24hEmailId));
+    tasks.push(cancelScheduledEmail(ids.reminder24hEmailId));
   if (ids.reminder1hEmailId)
-    tasks.push(cancelDeadlineReminder(ids.reminder1hEmailId));
+    tasks.push(cancelScheduledEmail(ids.reminder1hEmailId));
   await Promise.all(tasks);
 }
 
