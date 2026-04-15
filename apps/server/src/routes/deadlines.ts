@@ -7,10 +7,7 @@ import { deadlines, profiles } from "@my-better-t-app/db/schema";
 import { createRouter } from "@/lib/app";
 import { auth } from "@/middleware/auth";
 import { validationHook } from "@/lib/zod-hook";
-import {
-  cancelDeadlineReminder,
-  scheduleDeadlineReminder,
-} from "@/lib/emails";
+import { cancelDeadlineReminder, scheduleDeadlineReminder } from "@/lib/emails";
 
 const idParamSchema = z.object({ id: z.string().uuid() });
 
@@ -74,7 +71,6 @@ async function cancelBothReminders(ids: Partial<ReminderIds>): Promise<void> {
 const app = createRouter()
   .use("/*", auth)
 
-  // List own deadlines (ordered by due date ascending — soonest first)
   .get("/", zValidator("query", listQuerySchema, validationHook), async (c) => {
     const user = c.get("user");
     const { page, pageSize } = c.req.valid("query");
@@ -142,7 +138,7 @@ const app = createRouter()
     },
   )
 
-  // Update deadline + re-sync both reminders if title or dueAt changed
+  // Update deadline + re-sync both reminders
   .patch(
     "/:id",
     zValidator("param", idParamSchema, validationHook),
@@ -181,9 +177,6 @@ const app = createRouter()
         reminder1hEmailId: existing.reminder1hEmailId,
       };
 
-      // Resend's update endpoint only supports changing scheduledAt, so any
-      // change to the title or due date requires cancelling the old reminders
-      // and scheduling fresh ones with the current content.
       if (titleChanged || dueAtChanged) {
         await cancelBothReminders(existing);
         reminders = { reminder24hEmailId: null, reminder1hEmailId: null };
