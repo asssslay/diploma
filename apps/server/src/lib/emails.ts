@@ -127,20 +127,14 @@ export function deadlineReminderEmail(
   };
 }
 
-/**
- * Schedules a deadline reminder email `hoursBefore` hours before dueAt.
- * Returns the Resend email ID, or null if the reminder cannot be scheduled
- * (too close to now, already past, or beyond Resend's 30-day window).
- */
 export async function scheduleDeadlineReminder(
   to: string,
   title: string,
   dueAt: Date,
   hoursBefore: number,
+  operationId: string,
 ): Promise<string | null> {
-  const scheduledAt = new Date(
-    dueAt.getTime() - hoursBefore * 60 * 60 * 1000,
-  );
+  const scheduledAt = new Date(dueAt.getTime() - hoursBefore * 60 * 60 * 1000);
   const now = Date.now();
 
   if (scheduledAt.getTime() <= now) {
@@ -159,13 +153,22 @@ export async function scheduleDeadlineReminder(
   const template = deadlineReminderEmail(title, dueAt, hoursBefore);
 
   try {
-    const { data, error } = await resend.emails.send({
-      from: env.EMAIL_FROM,
-      to: [to],
-      subject: template.subject,
-      html: template.html,
-      scheduledAt: scheduledAt.toISOString(),
-    });
+    const { data, error } = await resend.emails.send(
+      {
+        from: env.EMAIL_FROM,
+        to: [to],
+        subject: template.subject,
+        html: template.html,
+        scheduledAt: scheduledAt.toISOString(),
+        tags: [
+          { name: "type", value: "deadline_reminder" },
+          { name: "hours_before", value: String(hoursBefore) },
+        ],
+      },
+      {
+        idempotencyKey: `deadline-reminder-${hoursBefore}h/${operationId}`,
+      },
+    );
 
     if (error) {
       console.error(
@@ -206,10 +209,7 @@ export async function cancelDeadlineReminder(
     console.log(`[reminder] Cancelled id=${emailId}`, data);
     return true;
   } catch (err) {
-    console.error(
-      `[reminder] Unexpected error cancelling id=${emailId}:`,
-      err,
-    );
+    console.error(`[reminder] Unexpected error cancelling id=${emailId}:`, err);
     return false;
   }
 }

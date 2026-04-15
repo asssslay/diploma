@@ -45,7 +45,7 @@ async function getUserEmail(userId: string): Promise<string | null> {
 }
 
 type ReminderIds = {
-  reminderEmailId: string | null;
+  reminder24hEmailId: string | null;
   reminder1hEmailId: string | null;
 };
 
@@ -53,17 +53,19 @@ async function scheduleBothReminders(
   email: string,
   title: string,
   dueAt: Date,
+  operationId: string,
 ): Promise<ReminderIds> {
-  const [reminderEmailId, reminder1hEmailId] = await Promise.all([
-    scheduleDeadlineReminder(email, title, dueAt, 24),
-    scheduleDeadlineReminder(email, title, dueAt, 1),
+  const [reminder24hEmailId, reminder1hEmailId] = await Promise.all([
+    scheduleDeadlineReminder(email, title, dueAt, 24, operationId),
+    scheduleDeadlineReminder(email, title, dueAt, 1, operationId),
   ]);
-  return { reminderEmailId, reminder1hEmailId };
+  return { reminder24hEmailId, reminder1hEmailId };
 }
 
 async function cancelBothReminders(ids: Partial<ReminderIds>): Promise<void> {
   const tasks: Promise<boolean>[] = [];
-  if (ids.reminderEmailId) tasks.push(cancelDeadlineReminder(ids.reminderEmailId));
+  if (ids.reminder24hEmailId)
+    tasks.push(cancelDeadlineReminder(ids.reminder24hEmailId));
   if (ids.reminder1hEmailId)
     tasks.push(cancelDeadlineReminder(ids.reminder1hEmailId));
   await Promise.all(tasks);
@@ -84,7 +86,7 @@ const app = createRouter()
           id: deadlines.id,
           title: deadlines.title,
           dueAt: deadlines.dueAt,
-          reminderEmailId: deadlines.reminderEmailId,
+          reminder24hEmailId: deadlines.reminder24hEmailId,
           reminder1hEmailId: deadlines.reminder1hEmailId,
           createdAt: deadlines.createdAt,
           updatedAt: deadlines.updatedAt,
@@ -115,9 +117,10 @@ const app = createRouter()
       const dueDate = new Date(dueAt);
 
       const email = await getUserEmail(user.id);
+      const operationId = crypto.randomUUID();
       const reminders: ReminderIds = email
-        ? await scheduleBothReminders(email, title, dueDate)
-        : { reminderEmailId: null, reminder1hEmailId: null };
+        ? await scheduleBothReminders(email, title, dueDate, operationId)
+        : { reminder24hEmailId: null, reminder1hEmailId: null };
 
       const rows = await db
         .insert(deadlines)
@@ -125,7 +128,7 @@ const app = createRouter()
           userId: user.id,
           title,
           dueAt: dueDate,
-          reminderEmailId: reminders.reminderEmailId,
+          reminder24hEmailId: reminders.reminder24hEmailId,
           reminder1hEmailId: reminders.reminder1hEmailId,
         })
         .returning();
@@ -154,7 +157,7 @@ const app = createRouter()
           id: deadlines.id,
           title: deadlines.title,
           dueAt: deadlines.dueAt,
-          reminderEmailId: deadlines.reminderEmailId,
+          reminder24hEmailId: deadlines.reminder24hEmailId,
           reminder1hEmailId: deadlines.reminder1hEmailId,
         })
         .from(deadlines)
@@ -174,7 +177,7 @@ const app = createRouter()
         newDueAt.getTime() !== existing.dueAt.getTime();
 
       let reminders: ReminderIds = {
-        reminderEmailId: existing.reminderEmailId,
+        reminder24hEmailId: existing.reminder24hEmailId,
         reminder1hEmailId: existing.reminder1hEmailId,
       };
 
@@ -183,10 +186,16 @@ const app = createRouter()
       // and scheduling fresh ones with the current content.
       if (titleChanged || dueAtChanged) {
         await cancelBothReminders(existing);
-        reminders = { reminderEmailId: null, reminder1hEmailId: null };
+        reminders = { reminder24hEmailId: null, reminder1hEmailId: null };
         const email = await getUserEmail(user.id);
         if (email) {
-          reminders = await scheduleBothReminders(email, newTitle, newDueAt);
+          const operationId = crypto.randomUUID();
+          reminders = await scheduleBothReminders(
+            email,
+            newTitle,
+            newDueAt,
+            operationId,
+          );
         }
       }
 
@@ -195,7 +204,7 @@ const app = createRouter()
         .set({
           ...(updates.title ? { title: updates.title } : {}),
           ...(updates.dueAt ? { dueAt: newDueAt } : {}),
-          reminderEmailId: reminders.reminderEmailId,
+          reminder24hEmailId: reminders.reminder24hEmailId,
           reminder1hEmailId: reminders.reminder1hEmailId,
           updatedAt: new Date(),
         })
@@ -224,7 +233,7 @@ const app = createRouter()
         .where(and(eq(deadlines.id, id), eq(deadlines.userId, user.id)))
         .returning({
           id: deadlines.id,
-          reminderEmailId: deadlines.reminderEmailId,
+          reminder24hEmailId: deadlines.reminder24hEmailId,
           reminder1hEmailId: deadlines.reminder1hEmailId,
         });
 
@@ -234,7 +243,7 @@ const app = createRouter()
       }
 
       console.log(
-        `[deadlines] Deleted deadline=${id} reminderEmailId=${deleted.reminderEmailId ?? "null"} reminder1hEmailId=${deleted.reminder1hEmailId ?? "null"}`,
+        `[deadlines] Deleted deadline=${id} reminder24hEmailId=${deleted.reminder24hEmailId ?? "null"} reminder1hEmailId=${deleted.reminder1hEmailId ?? "null"}`,
       );
 
       await cancelBothReminders(deleted);

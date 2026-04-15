@@ -1,0 +1,1 @@
+ALTER TABLE "deadlines" RENAME COLUMN "reminder_email_id" TO "reminder_24h_email_id";

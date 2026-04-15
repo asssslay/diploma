@@ -983,12 +983,12 @@ function DeadlinesTab() {
                 >
                   {URGENCY_LABELS[getUrgency(activeDeadline.dueAt)]}
                 </Badge>
-                {(activeDeadline.reminderEmailId ||
+                {(activeDeadline.reminder24hEmailId ||
                   activeDeadline.reminder1hEmailId) && (
                   <span className="text-xs text-muted-foreground">
                     · Reminders{" "}
                     {[
-                      activeDeadline.reminderEmailId && "24h",
+                      activeDeadline.reminder24hEmailId && "24h",
                       activeDeadline.reminder1hEmailId && "1h",
                     ]
                       .filter(Boolean)
