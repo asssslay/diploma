@@ -130,8 +130,16 @@ export async function scheduleDeadlineReminder(
   const scheduledAt = new Date(dueAt.getTime() - REMINDER_OFFSET_MS);
   const now = Date.now();
 
-  if (scheduledAt.getTime() <= now) return null;
+  if (scheduledAt.getTime() <= now) {
+    console.log(
+      `[reminder] Skipping schedule for "${title}": scheduledAt ${scheduledAt.toISOString()} is in the past`,
+    );
+    return null;
+  }
   if (scheduledAt.getTime() > now + MAX_SCHEDULE_DAYS * 24 * 60 * 60 * 1000) {
+    console.log(
+      `[reminder] Skipping schedule for "${title}": scheduledAt ${scheduledAt.toISOString()} is beyond 30-day window`,
+    );
     return null;
   }
 
@@ -147,12 +155,21 @@ export async function scheduleDeadlineReminder(
     });
 
     if (error) {
-      console.error("[email] Failed to schedule reminder:", error);
+      console.error(
+        `[reminder] Failed to schedule "${title}" for ${scheduledAt.toISOString()}:`,
+        error,
+      );
       return null;
     }
+    console.log(
+      `[reminder] Scheduled "${title}" → id=${data?.id} scheduledAt=${scheduledAt.toISOString()}`,
+    );
     return data?.id ?? null;
   } catch (err) {
-    console.error("[email] Unexpected error scheduling reminder:", err);
+    console.error(
+      `[reminder] Unexpected error scheduling "${title}":`,
+      err,
+    );
     return null;
   }
 }
@@ -190,16 +207,29 @@ export async function updateDeadlineReminder(
 }
 
 /**
- * Cancels a scheduled reminder. Fire-and-forget; errors are logged only.
+ * Cancels a scheduled reminder. Returns true on success, false on failure.
  */
-export async function cancelDeadlineReminder(emailId: string): Promise<void> {
+export async function cancelDeadlineReminder(
+  emailId: string,
+): Promise<boolean> {
+  console.log(`[reminder] Cancelling id=${emailId}...`);
   try {
-    const { error } = await resend.emails.cancel(emailId);
+    const { data, error } = await resend.emails.cancel(emailId);
     if (error) {
-      console.error("[email] Failed to cancel reminder:", error);
+      console.error(
+        `[reminder] Failed to cancel id=${emailId}:`,
+        JSON.stringify(error),
+      );
+      return false;
     }
+    console.log(`[reminder] Cancelled id=${emailId}`, data);
+    return true;
   } catch (err) {
-    console.error("[email] Unexpected error cancelling reminder:", err);
+    console.error(
+      `[reminder] Unexpected error cancelling id=${emailId}:`,
+      err,
+    );
+    return false;
   }
 }
 

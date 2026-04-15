@@ -10,7 +10,6 @@ import { validationHook } from "@/lib/zod-hook";
 import {
   cancelDeadlineReminder,
   scheduleDeadlineReminder,
-  updateDeadlineReminder,
 } from "@/lib/emails";
 
 const idParamSchema = z.object({ id: z.string().uuid() });
@@ -140,42 +139,29 @@ const app = createRouter()
 
       const newDueAt = updates.dueAt ? new Date(updates.dueAt) : existing.dueAt;
       const newTitle = updates.title ?? existing.title;
-      const dueAtChanged = newDueAt.getTime() !== existing.dueAt.getTime();
+      const titleChanged =
+        updates.title !== undefined && updates.title !== existing.title;
+      const dueAtChanged =
+        updates.dueAt !== undefined &&
+        newDueAt.getTime() !== existing.dueAt.getTime();
 
       let reminderEmailId = existing.reminderEmailId;
 
-      if (dueAtChanged) {
+      // Resend's update endpoint only supports changing scheduledAt, so any
+      // change to the title or due date requires cancelling the old reminder
+      // and scheduling a fresh one with the current content.
+      if (titleChanged || dueAtChanged) {
         if (existing.reminderEmailId) {
-          // Try updating the existing scheduled email
-          const updated = await updateDeadlineReminder(
-            existing.reminderEmailId,
+          await cancelDeadlineReminder(existing.reminderEmailId);
+        }
+        reminderEmailId = null;
+        const email = await getUserEmail(user.id);
+        if (email) {
+          reminderEmailId = await scheduleDeadlineReminder(
+            email,
+            newTitle,
             newDueAt,
           );
-          if (updated) {
-            reminderEmailId = updated;
-          } else {
-            // Update failed (e.g. moved out of range or already sent) — cancel and maybe reschedule
-            void cancelDeadlineReminder(existing.reminderEmailId);
-            reminderEmailId = null;
-            const email = await getUserEmail(user.id);
-            if (email) {
-              reminderEmailId = await scheduleDeadlineReminder(
-                email,
-                newTitle,
-                newDueAt,
-              );
-            }
-          }
-        } else {
-          // No existing reminder — try to schedule one now
-          const email = await getUserEmail(user.id);
-          if (email) {
-            reminderEmailId = await scheduleDeadlineReminder(
-              email,
-              newTitle,
-              newDueAt,
-            );
-          }
         }
       }
 
@@ -220,8 +206,12 @@ const app = createRouter()
         throw new HTTPException(404, { message: "Deadline not found" });
       }
 
+      console.log(
+        `[deadlines] Deleted deadline=${id} reminderEmailId=${deleted.reminderEmailId ?? "null"}`,
+      );
+
       if (deleted.reminderEmailId) {
-        void cancelDeadlineReminder(deleted.reminderEmailId);
+        await cancelDeadlineReminder(deleted.reminderEmailId);
       }
 
       return c.json({ success: true });
