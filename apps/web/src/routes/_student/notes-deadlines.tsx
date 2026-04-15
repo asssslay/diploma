@@ -18,6 +18,7 @@ import { hc } from "hono/client";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import {
   Dialog,
   DialogContent,
@@ -111,6 +112,9 @@ function NotesTab() {
   const [content, setContent] = useState("");
   const [errors, setErrors] = useState<FieldErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const dialogOpen = activeNote !== null || mode === "create";
 
@@ -251,21 +255,30 @@ function NotesTab() {
     }
   }
 
-  async function handleDelete(noteId: string) {
+  function requestDelete(noteId: string) {
+    setPendingDeleteId(noteId);
+  }
+
+  async function confirmDelete() {
+    if (!pendingDeleteId) return;
+    setIsDeleting(true);
     try {
       const api = await getApiClient();
       const res = await api.api.notes[":id"].$delete({
-        param: { id: noteId },
+        param: { id: pendingDeleteId },
       });
       if (!res.ok) {
         toast.error("Failed to delete note");
         return;
       }
       toast.success("Note deleted");
+      setPendingDeleteId(null);
       closeDialog();
       fetchNotes();
     } catch {
       toast.error("Failed to delete note");
+    } finally {
+      setIsDeleting(false);
     }
   }
 
@@ -350,7 +363,7 @@ function NotesTab() {
                 <NoteMenu
                   note={note}
                   onEdit={startEdit}
-                  onDelete={handleDelete}
+                  onDelete={requestDelete}
                 />
               </div>
               <p className="flex-1 text-sm leading-relaxed text-muted-foreground line-clamp-3">
@@ -437,7 +450,7 @@ function NotesTab() {
                   variant="outline"
                   size="sm"
                   className="rounded-lg text-destructive hover:bg-destructive/10 hover:text-destructive"
-                  onClick={() => handleDelete(activeNote.id)}
+                  onClick={() => requestDelete(activeNote.id)}
                 >
                   <Trash2 className="mr-2 size-3.5" />
                   Delete
@@ -513,6 +526,18 @@ function NotesTab() {
           )}
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={pendingDeleteId !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingDeleteId(null);
+        }}
+        title="Delete Note"
+        description="Are you sure you want to delete this note? This action cannot be undone."
+        confirmLabel="Delete"
+        onConfirm={confirmDelete}
+        isPending={isDeleting}
+      />
     </div>
   );
 }
@@ -651,6 +676,9 @@ function DeadlinesTab() {
   const [dueAt, setDueAt] = useState("");
   const [errors, setErrors] = useState<DeadlineFieldErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const dialogOpen = activeDeadline !== null || mode === "create";
 
@@ -798,19 +826,30 @@ function DeadlinesTab() {
     }
   }
 
-  async function handleDelete(id: string) {
+  function requestDelete(id: string) {
+    setPendingDeleteId(id);
+  }
+
+  async function confirmDelete() {
+    if (!pendingDeleteId) return;
+    setIsDeleting(true);
     try {
       const api = await getApiClient();
-      const res = await api.api.deadlines[":id"].$delete({ param: { id } });
+      const res = await api.api.deadlines[":id"].$delete({
+        param: { id: pendingDeleteId },
+      });
       if (!res.ok) {
         toast.error("Failed to delete deadline");
         return;
       }
       toast.success("Deadline deleted");
+      setPendingDeleteId(null);
       closeDialog();
       fetchDeadlines();
     } catch {
       toast.error("Failed to delete deadline");
+    } finally {
+      setIsDeleting(false);
     }
   }
 
@@ -911,7 +950,7 @@ function DeadlinesTab() {
                 <DeadlineMenu
                   deadline={d}
                   onEdit={startEdit}
-                  onDelete={handleDelete}
+                  onDelete={requestDelete}
                 />
               </div>
             );
@@ -964,7 +1003,7 @@ function DeadlinesTab() {
                   variant="outline"
                   size="sm"
                   className="rounded-lg text-destructive hover:bg-destructive/10 hover:text-destructive"
-                  onClick={() => handleDelete(activeDeadline.id)}
+                  onClick={() => requestDelete(activeDeadline.id)}
                 >
                   <Trash2 className="mr-2 size-3.5" />
                   Delete
@@ -1040,6 +1079,18 @@ function DeadlinesTab() {
           )}
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={pendingDeleteId !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingDeleteId(null);
+        }}
+        title="Delete Deadline"
+        description="Are you sure you want to delete this deadline? Its reminder email will also be cancelled. This action cannot be undone."
+        confirmLabel="Delete"
+        onConfirm={confirmDelete}
+        isPending={isDeleting}
+      />
     </div>
   );
 }
