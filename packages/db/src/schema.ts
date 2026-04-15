@@ -293,6 +293,8 @@ export const eventRegistrations = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     eventId: uuid("event_id").notNull(),
     studentId: uuid("student_id").notNull(),
+    reminder24hEmailId: text("reminder_24h_email_id"),
+    reminder1hEmailId: text("reminder_1h_email_id"),
     registeredAt: timestamp("registered_at", { withTimezone: true })
       .defaultNow()
       .notNull(),

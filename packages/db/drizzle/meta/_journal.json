@@ -85,6 +85,13 @@
       "when": 1776270353946,
       "tag": "0011_absurd_unus",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1776284466301,
+      "tag": "0012_naive_power_man",
+      "breakpoints": true
     }
   ]
 }
