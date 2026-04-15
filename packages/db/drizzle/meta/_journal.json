@@ -64,6 +64,13 @@
       "when": 1775824009258,
       "tag": "0008_bitter_veda",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1776259056246,
+      "tag": "0009_lean_zombie",
+      "breakpoints": true
     }
   ]
 }
