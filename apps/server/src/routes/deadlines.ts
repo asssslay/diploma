@@ -44,6 +44,31 @@ async function getUserEmail(userId: string): Promise<string | null> {
   return rows[0]?.email ?? null;
 }
 
+type ReminderIds = {
+  reminderEmailId: string | null;
+  reminder1hEmailId: string | null;
+};
+
+async function scheduleBothReminders(
+  email: string,
+  title: string,
+  dueAt: Date,
+): Promise<ReminderIds> {
+  const [reminderEmailId, reminder1hEmailId] = await Promise.all([
+    scheduleDeadlineReminder(email, title, dueAt, 24),
+    scheduleDeadlineReminder(email, title, dueAt, 1),
+  ]);
+  return { reminderEmailId, reminder1hEmailId };
+}
+
+async function cancelBothReminders(ids: Partial<ReminderIds>): Promise<void> {
+  const tasks: Promise<boolean>[] = [];
+  if (ids.reminderEmailId) tasks.push(cancelDeadlineReminder(ids.reminderEmailId));
+  if (ids.reminder1hEmailId)
+    tasks.push(cancelDeadlineReminder(ids.reminder1hEmailId));
+  await Promise.all(tasks);
+}
+
 const app = createRouter()
   .use("/*", auth)
 
@@ -60,6 +85,7 @@ const app = createRouter()
           title: deadlines.title,
           dueAt: deadlines.dueAt,
           reminderEmailId: deadlines.reminderEmailId,
+          reminder1hEmailId: deadlines.reminder1hEmailId,
           createdAt: deadlines.createdAt,
           updatedAt: deadlines.updatedAt,
         })
@@ -79,7 +105,7 @@ const app = createRouter()
     return c.json({ success: true, data: items, total, page, pageSize });
   })
 
-  // Create deadline + schedule reminder if within 30 days
+  // Create deadline + schedule both reminders (24h and 1h before due)
   .post(
     "/",
     zValidator("json", createDeadlineSchema, validationHook),
@@ -89,9 +115,9 @@ const app = createRouter()
       const dueDate = new Date(dueAt);
 
       const email = await getUserEmail(user.id);
-      const reminderEmailId = email
-        ? await scheduleDeadlineReminder(email, title, dueDate)
-        : null;
+      const reminders: ReminderIds = email
+        ? await scheduleBothReminders(email, title, dueDate)
+        : { reminderEmailId: null, reminder1hEmailId: null };
 
       const rows = await db
         .insert(deadlines)
@@ -99,7 +125,8 @@ const app = createRouter()
           userId: user.id,
           title,
           dueAt: dueDate,
-          reminderEmailId,
+          reminderEmailId: reminders.reminderEmailId,
+          reminder1hEmailId: reminders.reminder1hEmailId,
         })
         .returning();
 
@@ -112,7 +139,7 @@ const app = createRouter()
     },
   )
 
-  // Update deadline + re-sync reminder if dueAt changed
+  // Update deadline + re-sync both reminders if title or dueAt changed
   .patch(
     "/:id",
     zValidator("param", idParamSchema, validationHook),
@@ -128,6 +155,7 @@ const app = createRouter()
           title: deadlines.title,
           dueAt: deadlines.dueAt,
           reminderEmailId: deadlines.reminderEmailId,
+          reminder1hEmailId: deadlines.reminder1hEmailId,
         })
         .from(deadlines)
         .where(and(eq(deadlines.id, id), eq(deadlines.userId, user.id)))
@@ -145,23 +173,20 @@ const app = createRouter()
         updates.dueAt !== undefined &&
         newDueAt.getTime() !== existing.dueAt.getTime();
 
-      let reminderEmailId = existing.reminderEmailId;
+      let reminders: ReminderIds = {
+        reminderEmailId: existing.reminderEmailId,
+        reminder1hEmailId: existing.reminder1hEmailId,
+      };
 
       // Resend's update endpoint only supports changing scheduledAt, so any
-      // change to the title or due date requires cancelling the old reminder
-      // and scheduling a fresh one with the current content.
+      // change to the title or due date requires cancelling the old reminders
+      // and scheduling fresh ones with the current content.
       if (titleChanged || dueAtChanged) {
-        if (existing.reminderEmailId) {
-          await cancelDeadlineReminder(existing.reminderEmailId);
-        }
-        reminderEmailId = null;
+        await cancelBothReminders(existing);
+        reminders = { reminderEmailId: null, reminder1hEmailId: null };
         const email = await getUserEmail(user.id);
         if (email) {
-          reminderEmailId = await scheduleDeadlineReminder(
-            email,
-            newTitle,
-            newDueAt,
-          );
+          reminders = await scheduleBothReminders(email, newTitle, newDueAt);
         }
       }
 
@@ -170,7 +195,8 @@ const app = createRouter()
         .set({
           ...(updates.title ? { title: updates.title } : {}),
           ...(updates.dueAt ? { dueAt: newDueAt } : {}),
-          reminderEmailId,
+          reminderEmailId: reminders.reminderEmailId,
+          reminder1hEmailId: reminders.reminder1hEmailId,
           updatedAt: new Date(),
         })
         .where(and(eq(deadlines.id, id), eq(deadlines.userId, user.id)))
@@ -185,7 +211,7 @@ const app = createRouter()
     },
   )
 
-  // Delete deadline + cancel reminder
+  // Delete deadline + cancel both reminders
   .delete(
     "/:id",
     zValidator("param", idParamSchema, validationHook),
@@ -199,6 +225,7 @@ const app = createRouter()
         .returning({
           id: deadlines.id,
           reminderEmailId: deadlines.reminderEmailId,
+          reminder1hEmailId: deadlines.reminder1hEmailId,
         });
 
       const deleted = rows[0];
@@ -207,12 +234,10 @@ const app = createRouter()
       }
 
       console.log(
-        `[deadlines] Deleted deadline=${id} reminderEmailId=${deleted.reminderEmailId ?? "null"}`,
+        `[deadlines] Deleted deadline=${id} reminderEmailId=${deleted.reminderEmailId ?? "null"} reminder1hEmailId=${deleted.reminder1hEmailId ?? "null"}`,
       );
 
-      if (deleted.reminderEmailId) {
-        await cancelDeadlineReminder(deleted.reminderEmailId);
-      }
+      await cancelBothReminders(deleted);
 
       return c.json({ success: true });
     },

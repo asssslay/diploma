@@ -629,6 +629,7 @@ export const deadlines = pgTable(
     title: text("title").notNull(),
     dueAt: timestamp("due_at", { withTimezone: true }).notNull(),
     reminderEmailId: text("reminder_email_id"),
+    reminder1hEmailId: text("reminder_1h_email_id"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),

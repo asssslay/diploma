@@ -8,7 +8,6 @@ type EmailTemplate = {
 
 // Resend can only schedule emails up to 30 days in advance.
 const MAX_SCHEDULE_DAYS = 30;
-const REMINDER_OFFSET_MS = 24 * 60 * 60 * 1000;
 
 export function accountApprovedEmail(fullName: string | null): EmailTemplate {
   const name = fullName?.trim() || "there";
@@ -80,6 +79,7 @@ export async function sendEmail(
 export function deadlineReminderEmail(
   title: string,
   dueAt: Date,
+  hoursBefore: number,
 ): EmailTemplate {
   const formattedDate = dueAt.toLocaleDateString("en-GB", {
     weekday: "long",
@@ -95,13 +95,23 @@ export function deadlineReminderEmail(
     timeZoneName: "short",
   });
 
+  const subject =
+    hoursBefore >= 24
+      ? `Reminder: ${title} is due tomorrow`
+      : `Reminder: ${title} is due in ${hoursBefore} hour${hoursBefore === 1 ? "" : "s"}`;
+
+  const leadText =
+    hoursBefore >= 24
+      ? "This is a friendly reminder that the following deadline is due in about 24 hours."
+      : `Heads up — the following deadline is due in about ${hoursBefore} hour${hoursBefore === 1 ? "" : "s"}.`;
+
   return {
-    subject: `Reminder: ${title} is due tomorrow`,
+    subject,
     html: `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; color: #0a0a0a;">
         <h1 style="font-size: 22px; font-weight: 700; margin: 0 0 16px;">Deadline reminder</h1>
         <p style="font-size: 15px; line-height: 1.6; margin: 0 0 20px;">
-          This is a friendly reminder that the following deadline is due in about 24 hours.
+          ${leadText}
         </p>
         <div style="background: #f5f5f5; border-left: 3px solid #c6ff3d; padding: 16px 20px; margin: 20px 0; border-radius: 4px;">
           <p style="font-size: 17px; font-weight: 700; margin: 0 0 8px; color: #0a0a0a;">${escapeHtml(title)}</p>
@@ -118,7 +128,7 @@ export function deadlineReminderEmail(
 }
 
 /**
- * Schedules a deadline reminder email 24 hours before dueAt.
+ * Schedules a deadline reminder email `hoursBefore` hours before dueAt.
  * Returns the Resend email ID, or null if the reminder cannot be scheduled
  * (too close to now, already past, or beyond Resend's 30-day window).
  */
@@ -126,24 +136,27 @@ export async function scheduleDeadlineReminder(
   to: string,
   title: string,
   dueAt: Date,
+  hoursBefore: number,
 ): Promise<string | null> {
-  const scheduledAt = new Date(dueAt.getTime() - REMINDER_OFFSET_MS);
+  const scheduledAt = new Date(
+    dueAt.getTime() - hoursBefore * 60 * 60 * 1000,
+  );
   const now = Date.now();
 
   if (scheduledAt.getTime() <= now) {
     console.log(
-      `[reminder] Skipping schedule for "${title}": scheduledAt ${scheduledAt.toISOString()} is in the past`,
+      `[reminder] Skipping ${hoursBefore}h schedule for "${title}": scheduledAt ${scheduledAt.toISOString()} is in the past`,
     );
     return null;
   }
   if (scheduledAt.getTime() > now + MAX_SCHEDULE_DAYS * 24 * 60 * 60 * 1000) {
     console.log(
-      `[reminder] Skipping schedule for "${title}": scheduledAt ${scheduledAt.toISOString()} is beyond 30-day window`,
+      `[reminder] Skipping ${hoursBefore}h schedule for "${title}": scheduledAt ${scheduledAt.toISOString()} is beyond 30-day window`,
     );
     return null;
   }
 
-  const template = deadlineReminderEmail(title, dueAt);
+  const template = deadlineReminderEmail(title, dueAt, hoursBefore);
 
   try {
     const { data, error } = await resend.emails.send({
@@ -156,52 +169,20 @@ export async function scheduleDeadlineReminder(
 
     if (error) {
       console.error(
-        `[reminder] Failed to schedule "${title}" for ${scheduledAt.toISOString()}:`,
+        `[reminder] Failed to schedule ${hoursBefore}h "${title}" for ${scheduledAt.toISOString()}:`,
         error,
       );
       return null;
     }
     console.log(
-      `[reminder] Scheduled "${title}" → id=${data?.id} scheduledAt=${scheduledAt.toISOString()}`,
+      `[reminder] Scheduled ${hoursBefore}h "${title}" → id=${data?.id} scheduledAt=${scheduledAt.toISOString()}`,
     );
     return data?.id ?? null;
   } catch (err) {
     console.error(
-      `[reminder] Unexpected error scheduling "${title}":`,
+      `[reminder] Unexpected error scheduling ${hoursBefore}h "${title}":`,
       err,
     );
-    return null;
-  }
-}
-
-/**
- * Updates the scheduled time of an existing reminder email.
- * Returns the email ID on success, null on failure.
- */
-export async function updateDeadlineReminder(
-  emailId: string,
-  dueAt: Date,
-): Promise<string | null> {
-  const scheduledAt = new Date(dueAt.getTime() - REMINDER_OFFSET_MS);
-  const now = Date.now();
-
-  if (scheduledAt.getTime() <= now) return null;
-  if (scheduledAt.getTime() > now + MAX_SCHEDULE_DAYS * 24 * 60 * 60 * 1000) {
-    return null;
-  }
-
-  try {
-    const { error } = await resend.emails.update({
-      id: emailId,
-      scheduledAt: scheduledAt.toISOString(),
-    });
-    if (error) {
-      console.error("[email] Failed to update reminder:", error);
-      return null;
-    }
-    return emailId;
-  } catch (err) {
-    console.error("[email] Unexpected error updating reminder:", err);
     return null;
   }
 }

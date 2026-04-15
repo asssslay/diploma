@@ -983,9 +983,17 @@ function DeadlinesTab() {
                 >
                   {URGENCY_LABELS[getUrgency(activeDeadline.dueAt)]}
                 </Badge>
-                {activeDeadline.reminderEmailId && (
+                {(activeDeadline.reminderEmailId ||
+                  activeDeadline.reminder1hEmailId) && (
                   <span className="text-xs text-muted-foreground">
-                    · Reminder scheduled 24h before
+                    · Reminders{" "}
+                    {[
+                      activeDeadline.reminderEmailId && "24h",
+                      activeDeadline.reminder1hEmailId && "1h",
+                    ]
+                      .filter(Boolean)
+                      .join(" + ")}{" "}
+                    before
                   </span>
                 )}
               </div>
@@ -1086,7 +1094,7 @@ function DeadlinesTab() {
           if (!open) setPendingDeleteId(null);
         }}
         title="Delete Deadline"
-        description="Are you sure you want to delete this deadline? Its reminder email will also be cancelled. This action cannot be undone."
+        description="Are you sure you want to delete this deadline? Any scheduled reminder emails will also be cancelled. This action cannot be undone."
         confirmLabel="Delete"
         onConfirm={confirmDelete}
         isPending={isDeleting}

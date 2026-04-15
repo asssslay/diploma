@@ -71,6 +71,13 @@
       "when": 1776259056246,
       "tag": "0009_lean_zombie",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1776263803669,
+      "tag": "0010_small_wonder_man",
+      "breakpoints": true
     }
   ]
 }
