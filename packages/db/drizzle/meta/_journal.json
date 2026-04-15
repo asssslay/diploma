@@ -57,6 +57,34 @@
       "when": 1775574416179,
       "tag": "0007_groovy_raider",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1775824009258,
+      "tag": "0008_bitter_veda",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1776259056246,
+      "tag": "0009_lean_zombie",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1776263803669,
+      "tag": "0010_small_wonder_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1776270353946,
+      "tag": "0011_absurd_unus",
+      "breakpoints": true
     }
   ]
 }

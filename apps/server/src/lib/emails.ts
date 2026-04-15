@@ -6,6 +6,9 @@ type EmailTemplate = {
   html: string;
 };
 
+// Resend can only schedule emails up to 30 days in advance.
+const MAX_SCHEDULE_DAYS = 30;
+
 export function accountApprovedEmail(fullName: string | null): EmailTemplate {
   const name = fullName?.trim() || "there";
   return {
@@ -70,6 +73,144 @@ export async function sendEmail(
 
   if (error) {
     console.error("[email] Failed to send:", error);
+  }
+}
+
+export function deadlineReminderEmail(
+  title: string,
+  dueAt: Date,
+  hoursBefore: number,
+): EmailTemplate {
+  const formattedDate = dueAt.toLocaleDateString("en-GB", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+  const formattedTime = dueAt.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "UTC",
+    timeZoneName: "short",
+  });
+
+  const subject =
+    hoursBefore >= 24
+      ? `Reminder: ${title} is due tomorrow`
+      : `Reminder: ${title} is due in ${hoursBefore} hour${hoursBefore === 1 ? "" : "s"}`;
+
+  const leadText =
+    hoursBefore >= 24
+      ? "This is a friendly reminder that the following deadline is due in about 24 hours."
+      : `Heads up — the following deadline is due in about ${hoursBefore} hour${hoursBefore === 1 ? "" : "s"}.`;
+
+  return {
+    subject,
+    html: `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; color: #0a0a0a;">
+        <h1 style="font-size: 22px; font-weight: 700; margin: 0 0 16px;">Deadline reminder</h1>
+        <p style="font-size: 15px; line-height: 1.6; margin: 0 0 20px;">
+          ${leadText}
+        </p>
+        <div style="background: #f5f5f5; border-left: 3px solid #c6ff3d; padding: 16px 20px; margin: 20px 0; border-radius: 4px;">
+          <p style="font-size: 17px; font-weight: 700; margin: 0 0 8px; color: #0a0a0a;">${escapeHtml(title)}</p>
+          <p style="font-size: 14px; line-height: 1.5; margin: 0; color: #525252;">
+            ${escapeHtml(formattedDate)} &middot; ${escapeHtml(formattedTime)}
+          </p>
+        </div>
+        <p style="font-size: 13px; line-height: 1.6; color: #737373; margin: 32px 0 0;">
+          — The UniCommunity Team
+        </p>
+      </div>
+    `,
+  };
+}
+
+export async function scheduleDeadlineReminder(
+  to: string,
+  title: string,
+  dueAt: Date,
+  hoursBefore: number,
+  operationId: string,
+): Promise<string | null> {
+  const scheduledAt = new Date(dueAt.getTime() - hoursBefore * 60 * 60 * 1000);
+  const now = Date.now();
+
+  if (scheduledAt.getTime() <= now) {
+    console.log(
+      `[reminder] Skipping ${hoursBefore}h schedule for "${title}": scheduledAt ${scheduledAt.toISOString()} is in the past`,
+    );
+    return null;
+  }
+  if (scheduledAt.getTime() > now + MAX_SCHEDULE_DAYS * 24 * 60 * 60 * 1000) {
+    console.log(
+      `[reminder] Skipping ${hoursBefore}h schedule for "${title}": scheduledAt ${scheduledAt.toISOString()} is beyond 30-day window`,
+    );
+    return null;
+  }
+
+  const template = deadlineReminderEmail(title, dueAt, hoursBefore);
+
+  try {
+    const { data, error } = await resend.emails.send(
+      {
+        from: env.EMAIL_FROM,
+        to: [to],
+        subject: template.subject,
+        html: template.html,
+        scheduledAt: scheduledAt.toISOString(),
+        tags: [
+          { name: "type", value: "deadline_reminder" },
+          { name: "hours_before", value: String(hoursBefore) },
+        ],
+      },
+      {
+        idempotencyKey: `deadline-reminder-${hoursBefore}h/${operationId}`,
+      },
+    );
+
+    if (error) {
+      console.error(
+        `[reminder] Failed to schedule ${hoursBefore}h "${title}" for ${scheduledAt.toISOString()}:`,
+        error,
+      );
+      return null;
+    }
+    console.log(
+      `[reminder] Scheduled ${hoursBefore}h "${title}" → id=${data?.id} scheduledAt=${scheduledAt.toISOString()}`,
+    );
+    return data?.id ?? null;
+  } catch (err) {
+    console.error(
+      `[reminder] Unexpected error scheduling ${hoursBefore}h "${title}":`,
+      err,
+    );
+    return null;
+  }
+}
+
+/**
+ * Cancels a scheduled reminder. Returns true on success, false on failure.
+ */
+export async function cancelDeadlineReminder(
+  emailId: string,
+): Promise<boolean> {
+  console.log(`[reminder] Cancelling id=${emailId}...`);
+  try {
+    const { data, error } = await resend.emails.cancel(emailId);
+    if (error) {
+      console.error(
+        `[reminder] Failed to cancel id=${emailId}:`,
+        JSON.stringify(error),
+      );
+      return false;
+    }
+    console.log(`[reminder] Cancelled id=${emailId}`, data);
+    return true;
+  } catch (err) {
+    console.error(`[reminder] Unexpected error cancelling id=${emailId}:`, err);
+    return false;
   }
 }
 

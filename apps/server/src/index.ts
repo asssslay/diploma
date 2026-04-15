@@ -10,6 +10,8 @@ import adminDiscussions from "@/routes/admin/discussions";
 import news from "@/routes/news";
 import events from "@/routes/events";
 import discussionsRoute from "@/routes/discussions";
+import deadlinesRoute from "@/routes/deadlines";
+import notesRoute from "@/routes/notes";
 import profile from "@/routes/profile";
 
 const app = new Hono();
@@ -43,6 +45,8 @@ const routes = app
   .route("/api/events", events)
   .route("/api/discussions", discussionsRoute)
   .route("/api/admin/discussions", adminDiscussions)
+  .route("/api/notes", notesRoute)
+  .route("/api/deadlines", deadlinesRoute)
   .route("/api/profile", profile);
 
 export type AppType = typeof routes;

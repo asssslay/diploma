@@ -8,6 +8,7 @@ import type { InferResponseType } from "hono/client";
 import { hc } from "hono/client";
 
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import {
   Dialog,
   DialogContent,
@@ -412,19 +413,15 @@ function EventsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Event</DialogTitle>
-            <DialogDescription>Are you sure you want to delete this event? All registrations will be removed. This action cannot be undone.</DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" className="rounded-lg" onClick={() => setDeleteDialogOpen(false)} disabled={isDeleting}>Cancel</Button>
-            <Button variant="destructive" className="rounded-lg" onClick={handleDelete} disabled={isDeleting}>{isDeleting ? "Deleting..." : "Delete"}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="Delete Event"
+        description="Are you sure you want to delete this event? All registrations will be removed. This action cannot be undone."
+        confirmLabel="Delete"
+        onConfirm={handleDelete}
+        isPending={isDeleting}
+      />
     </div>
   );
 }

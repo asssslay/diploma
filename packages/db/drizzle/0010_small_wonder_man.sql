@@ -1,0 +1,1 @@
+ALTER TABLE "deadlines" ADD COLUMN "reminder_1h_email_id" text;
