@@ -92,6 +92,13 @@
       "when": 1776284466301,
       "tag": "0012_naive_power_man",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1776332538047,
+      "tag": "0013_lying_cyclops",
+      "breakpoints": true
     }
   ]
 }
