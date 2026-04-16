@@ -1,6 +1,11 @@
-import { eq } from "drizzle-orm";
+import { and, eq, gt } from "drizzle-orm";
 import { db } from "@my-better-t-app/db";
-import { eventRegistrations, profiles } from "@my-better-t-app/db/schema";
+import {
+  eventRegistrations,
+  events,
+  profiles,
+  userSettings,
+} from "@my-better-t-app/db/schema";
 import {
   cancelScheduledEmail,
   scheduleEventReminder,
@@ -100,9 +105,11 @@ export async function rescheduleAllEventReminders(
       email: profiles.email,
       reminder24hEmailId: eventRegistrations.reminder24hEmailId,
       reminder1hEmailId: eventRegistrations.reminder1hEmailId,
+      notifyEventReminders: userSettings.notifyEventReminders,
     })
     .from(eventRegistrations)
     .innerJoin(profiles, eq(eventRegistrations.studentId, profiles.id))
+    .leftJoin(userSettings, eq(eventRegistrations.studentId, userSettings.id))
     .where(eq(eventRegistrations.eventId, eventId));
 
   if (rows.length === 0) {
@@ -117,6 +124,15 @@ export async function rescheduleAllEventReminders(
   const tasks = rows.map((row) => async () => {
     try {
       await cancelBothEventReminders(row);
+
+      // Respect user notification preferences (no row = default true)
+      if (row.notifyEventReminders === false) {
+        await db
+          .update(eventRegistrations)
+          .set({ reminder24hEmailId: null, reminder1hEmailId: null })
+          .where(eq(eventRegistrations.id, row.registrationId));
+        return;
+      }
 
       if (!row.email) {
         console.warn(
@@ -156,3 +172,109 @@ export async function rescheduleAllEventReminders(
   await runThrottled(tasks);
 }
 
+/**
+ * Cancels all scheduled event reminders for a user and nulls out
+ * the stored Resend IDs. Called when the user disables event notifications.
+ */
+export async function cancelAllUserEventReminders(
+  userId: string,
+): Promise<void> {
+  const rows = await db
+    .select({
+      id: eventRegistrations.id,
+      reminder24hEmailId: eventRegistrations.reminder24hEmailId,
+      reminder1hEmailId: eventRegistrations.reminder1hEmailId,
+    })
+    .from(eventRegistrations)
+    .where(eq(eventRegistrations.studentId, userId));
+
+  const cancelTasks: Array<() => Promise<boolean>> = [];
+  for (const row of rows) {
+    if (row.reminder24hEmailId) {
+      const emailId = row.reminder24hEmailId;
+      cancelTasks.push(() => cancelScheduledEmail(emailId));
+    }
+    if (row.reminder1hEmailId) {
+      const emailId = row.reminder1hEmailId;
+      cancelTasks.push(() => cancelScheduledEmail(emailId));
+    }
+  }
+
+  if (cancelTasks.length > 0) {
+    console.log(
+      `[events] Cancelling ${cancelTasks.length} reminders for user=${userId}`,
+    );
+    await runThrottled(cancelTasks);
+  }
+
+  await db
+    .update(eventRegistrations)
+    .set({ reminder24hEmailId: null, reminder1hEmailId: null })
+    .where(eq(eventRegistrations.studentId, userId));
+}
+
+/**
+ * Schedules reminders (24h + 1h) for all upcoming event registrations of a user.
+ * Called when the user re-enables event notifications.
+ */
+export async function scheduleAllUserEventReminders(
+  userId: string,
+): Promise<void> {
+  const [userRow] = await db
+    .select({ email: profiles.email })
+    .from(profiles)
+    .where(eq(profiles.id, userId))
+    .limit(1);
+
+  if (!userRow?.email) return;
+
+  const rows = await db
+    .select({
+      registrationId: eventRegistrations.id,
+      title: events.title,
+      eventDate: events.eventDate,
+      location: events.location,
+    })
+    .from(eventRegistrations)
+    .innerJoin(events, eq(eventRegistrations.eventId, events.id))
+    .where(
+      and(
+        eq(eventRegistrations.studentId, userId),
+        gt(events.eventDate, new Date()),
+      ),
+    );
+
+  if (rows.length === 0) return;
+
+  console.log(
+    `[events] Scheduling reminders for ${rows.length} event registrations for user=${userId}`,
+  );
+
+  const tasks = rows.map((row) => async () => {
+    try {
+      const operationId = crypto.randomUUID();
+      const reminders = await scheduleBothEventReminders(
+        userRow.email,
+        row.title,
+        row.eventDate,
+        row.location,
+        operationId,
+      );
+
+      await db
+        .update(eventRegistrations)
+        .set({
+          reminder24hEmailId: reminders.reminder24hEmailId,
+          reminder1hEmailId: reminders.reminder1hEmailId,
+        })
+        .where(eq(eventRegistrations.id, row.registrationId));
+    } catch (err) {
+      console.error(
+        `[events] Failed to schedule reminders for registration=${row.registrationId}:`,
+        err,
+      );
+    }
+  });
+
+  await runThrottled(tasks);
+}

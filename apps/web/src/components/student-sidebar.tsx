@@ -4,6 +4,7 @@ import {
   Home,
   LogOut,
   MessageSquare,
+  Settings,
   StickyNote,
   User,
 } from "lucide-react";
@@ -15,6 +16,7 @@ const navItems = [
   { to: "/discussions", label: "Discussions", icon: MessageSquare },
   { to: "/notes-deadlines", label: "Notes | Deadlines", icon: StickyNote },
   { to: "/profile", label: "Profile", icon: User },
+  { to: "/settings", label: "Settings", icon: Settings },
 ] as const;
 
 export function StudentSidebar() {

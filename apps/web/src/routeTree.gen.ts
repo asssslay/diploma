@@ -29,6 +29,7 @@ import { Route as StudentProfileProfileIdRouteImport } from './routes/_student/p
 import { Route as StudentNewsNewsIdRouteImport } from './routes/_student/news.$newsId'
 import { Route as StudentEventsEventIdRouteImport } from './routes/_student/events.$eventId'
 import { Route as StudentDiscussionsDiscussionIdRouteImport } from './routes/_student/discussions_.$discussionId'
+import { Route as StudentSettingsRouteImport } from './routes/_student/settings'
 
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
@@ -132,6 +133,11 @@ const StudentDiscussionsDiscussionIdRoute =
     path: '/discussions/$discussionId',
     getParentRoute: () => StudentRoute,
   } as any)
+const StudentSettingsRoute = StudentSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => StudentRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -142,6 +148,7 @@ export interface FileRoutesByFullPath {
   '/home': typeof StudentHomeRoute
   '/notes-deadlines': typeof StudentNotesDeadlinesRoute
   '/profile': typeof StudentProfileRouteWithChildren
+  '/settings': typeof StudentSettingsRoute
   '/admin/login': typeof AdminLoginRoute
   '/discussions/$discussionId': typeof StudentDiscussionsDiscussionIdRoute
   '/events/$eventId': typeof StudentEventsEventIdRoute
@@ -162,6 +169,7 @@ export interface FileRoutesByTo {
   '/home': typeof StudentHomeRoute
   '/notes-deadlines': typeof StudentNotesDeadlinesRoute
   '/profile': typeof StudentProfileRouteWithChildren
+  '/settings': typeof StudentSettingsRoute
   '/admin/login': typeof AdminLoginRoute
   '/discussions/$discussionId': typeof StudentDiscussionsDiscussionIdRoute
   '/events/$eventId': typeof StudentEventsEventIdRoute
@@ -183,6 +191,7 @@ export interface FileRoutesById {
   '/_student/home': typeof StudentHomeRoute
   '/_student/notes-deadlines': typeof StudentNotesDeadlinesRoute
   '/_student/profile': typeof StudentProfileRouteWithChildren
+  '/_student/settings': typeof StudentSettingsRoute
   '/admin/_authenticated': typeof AdminAuthenticatedRouteWithChildren
   '/admin/login': typeof AdminLoginRoute
   '/_student/discussions_/$discussionId': typeof StudentDiscussionsDiscussionIdRoute
@@ -206,6 +215,7 @@ export interface FileRouteTypes {
     | '/home'
     | '/notes-deadlines'
     | '/profile'
+    | '/settings'
     | '/admin/login'
     | '/discussions/$discussionId'
     | '/events/$eventId'
@@ -226,6 +236,7 @@ export interface FileRouteTypes {
     | '/home'
     | '/notes-deadlines'
     | '/profile'
+    | '/settings'
     | '/admin/login'
     | '/discussions/$discussionId'
     | '/events/$eventId'
@@ -246,6 +257,7 @@ export interface FileRouteTypes {
     | '/_student/home'
     | '/_student/notes-deadlines'
     | '/_student/profile'
+    | '/_student/settings'
     | '/admin/_authenticated'
     | '/admin/login'
     | '/_student/discussions_/$discussionId'
@@ -409,6 +421,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StudentDiscussionsDiscussionIdRouteImport
       parentRoute: typeof StudentRoute
     }
+    '/_student/settings': {
+      id: '/_student/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof StudentSettingsRouteImport
+      parentRoute: typeof StudentRoute
+    }
   }
 }
 
@@ -462,6 +481,7 @@ interface StudentRouteChildren {
   StudentHomeRoute: typeof StudentHomeRoute
   StudentNotesDeadlinesRoute: typeof StudentNotesDeadlinesRoute
   StudentProfileRoute: typeof StudentProfileRouteWithChildren
+  StudentSettingsRoute: typeof StudentSettingsRoute
   StudentDiscussionsDiscussionIdRoute: typeof StudentDiscussionsDiscussionIdRoute
   StudentEventsEventIdRoute: typeof StudentEventsEventIdRoute
   StudentNewsNewsIdRoute: typeof StudentNewsNewsIdRoute
@@ -472,6 +492,7 @@ const StudentRouteChildren: StudentRouteChildren = {
   StudentHomeRoute: StudentHomeRoute,
   StudentNotesDeadlinesRoute: StudentNotesDeadlinesRoute,
   StudentProfileRoute: StudentProfileRouteWithChildren,
+  StudentSettingsRoute: StudentSettingsRoute,
   StudentDiscussionsDiscussionIdRoute: StudentDiscussionsDiscussionIdRoute,
   StudentEventsEventIdRoute: StudentEventsEventIdRoute,
   StudentNewsNewsIdRoute: StudentNewsNewsIdRoute,

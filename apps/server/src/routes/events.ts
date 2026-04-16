@@ -3,7 +3,7 @@ import { HTTPException } from "hono/http-exception";
 import { and, count, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@my-better-t-app/db";
-import { events, eventRegistrations, profiles } from "@my-better-t-app/db/schema";
+import { events, eventRegistrations, profiles, userSettings } from "@my-better-t-app/db/schema";
 import { createRouter } from "@/lib/app";
 import { auth } from "@/middleware/auth";
 import { validationHook } from "@/lib/zod-hook";
@@ -188,8 +188,15 @@ const app = createRouter()
       .where(eq(profiles.id, user.id))
       .limit(1);
 
+    const [settingsRow] = await db
+      .select({ notify: userSettings.notifyEventReminders })
+      .from(userSettings)
+      .where(eq(userSettings.id, user.id))
+      .limit(1);
+    const notifyEnabled = settingsRow?.notify ?? true;
+
     const operationId = crypto.randomUUID();
-    const reminders = studentProfile?.email
+    const reminders = studentProfile?.email && notifyEnabled
       ? await scheduleBothEventReminders(
           studentProfile.email,
           event.title,

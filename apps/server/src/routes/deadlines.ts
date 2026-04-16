@@ -3,7 +3,7 @@ import { HTTPException } from "hono/http-exception";
 import { and, asc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@my-better-t-app/db";
-import { deadlines, profiles } from "@my-better-t-app/db/schema";
+import { deadlines, profiles, userSettings } from "@my-better-t-app/db/schema";
 import { createRouter } from "@/lib/app";
 import { auth } from "@/middleware/auth";
 import { validationHook } from "@/lib/zod-hook";
@@ -113,8 +113,16 @@ const app = createRouter()
       const dueDate = new Date(dueAt);
 
       const email = await getUserEmail(user.id);
+
+      const [settingsRow] = await db
+        .select({ notify: userSettings.notifyDeadlineReminders })
+        .from(userSettings)
+        .where(eq(userSettings.id, user.id))
+        .limit(1);
+      const notifyEnabled = settingsRow?.notify ?? true;
+
       const operationId = crypto.randomUUID();
-      const reminders: ReminderIds = email
+      const reminders: ReminderIds = email && notifyEnabled
         ? await scheduleBothReminders(email, title, dueDate, operationId)
         : { reminder24hEmailId: null, reminder1hEmailId: null };
 
@@ -181,7 +189,14 @@ const app = createRouter()
         await cancelBothReminders(existing);
         reminders = { reminder24hEmailId: null, reminder1hEmailId: null };
         const email = await getUserEmail(user.id);
-        if (email) {
+        const [settingsRow] = await db
+          .select({ notify: userSettings.notifyDeadlineReminders })
+          .from(userSettings)
+          .where(eq(userSettings.id, user.id))
+          .limit(1);
+        const notifyEnabled = settingsRow?.notify ?? true;
+
+        if (email && notifyEnabled) {
           const operationId = crypto.randomUUID();
           reminders = await scheduleBothReminders(
             email,
