@@ -5,29 +5,12 @@ import {
   cancelScheduledEmail,
   scheduleEventReminder,
 } from "@/lib/emails";
+import { runThrottled } from "@/lib/throttle";
 
 export type EventReminderIds = {
   reminder24hEmailId: string | null;
   reminder1hEmailId: string | null;
 };
-
-// Throttle async tasks to respect Resend's 5 rps team limit.
-async function runThrottled<T>(
-  tasks: Array<() => Promise<T>>,
-  ratePerSecond = 4,
-): Promise<T[]> {
-  const results: T[] = [];
-  const intervalMs = Math.ceil(1000 / ratePerSecond);
-  for (let i = 0; i < tasks.length; i++) {
-    const task = tasks[i];
-    if (!task) continue;
-    results.push(await task());
-    if (i < tasks.length - 1) {
-      await new Promise((r) => setTimeout(r, intervalMs));
-    }
-  }
-  return results;
-}
 
 export async function scheduleBothEventReminders(
   email: string,
