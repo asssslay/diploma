@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  boolean,
   foreignKey,
   integer,
   pgEnum,
@@ -158,9 +159,42 @@ export const studentApplications = pgTable(
   ],
 );
 
-export const userSettings = pgTable("user_settings", {
-  id: uuid("id").primaryKey(),
-});
+export const userSettings = pgTable(
+  "user_settings",
+  {
+    id: uuid("id").primaryKey(),
+    notifyDeadlineReminders: boolean("notify_deadline_reminders")
+      .notNull()
+      .default(true),
+    notifyEventReminders: boolean("notify_event_reminders")
+      .notNull()
+      .default(true),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.id],
+      foreignColumns: [profiles.id],
+      name: "user_settings_id_profiles_fk",
+    }).onDelete("cascade"),
+
+    pgPolicy("owner_read_own_settings", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`${table.id} = ${authUid}`,
+    }),
+    pgPolicy("owner_insert_own_settings", {
+      for: "insert",
+      to: authenticatedRole,
+      withCheck: sql`${table.id} = ${authUid}`,
+    }),
+    pgPolicy("owner_update_own_settings", {
+      for: "update",
+      to: authenticatedRole,
+      using: sql`${table.id} = ${authUid}`,
+      withCheck: sql`${table.id} = ${authUid}`,
+    }),
+  ],
+);
 
 export const newsPosts = pgTable(
   "news_posts",

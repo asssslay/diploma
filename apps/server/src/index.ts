@@ -13,6 +13,7 @@ import discussionsRoute from "@/routes/discussions";
 import deadlinesRoute from "@/routes/deadlines";
 import notesRoute from "@/routes/notes";
 import profile from "@/routes/profile";
+import settingsRoute from "@/routes/settings";
 
 const app = new Hono();
 
@@ -47,7 +48,8 @@ const routes = app
   .route("/api/admin/discussions", adminDiscussions)
   .route("/api/notes", notesRoute)
   .route("/api/deadlines", deadlinesRoute)
-  .route("/api/profile", profile);
+  .route("/api/profile", profile)
+  .route("/api/settings", settingsRoute);
 
 export type AppType = typeof routes;
 export default app;
