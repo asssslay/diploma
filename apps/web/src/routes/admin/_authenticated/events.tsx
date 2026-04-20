@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { Pencil, Plus, Trash2 } from "lucide-react";
-import { formatDate, isEdited } from "@/lib/utils";
+import { formatDate, formatTime, isEdited } from "@/lib/utils";
 import { toast } from "sonner";
 import { z } from "zod";
 import type { InferResponseType } from "hono/client";
@@ -271,7 +271,7 @@ function EventsPage() {
                     <tr key={event.id} className="border-b border-border/30 last:border-0">
                       <td className={`${tableCellClass} font-medium`}>{event.title}</td>
                       <td className={`${tableCellClass} text-muted-foreground`}>
-                        {formatDate(event.eventDate)}
+                        {formatDate(event.eventDate)} · {formatTime(event.eventDate)}
                         {event.updatedAt && isEdited(event.createdAt, event.updatedAt) && (
                           <span className="text-muted-foreground/50"> · Edited</span>
                         )}
