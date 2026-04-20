@@ -20,10 +20,15 @@ import type { AppType } from "server";
 
 type Client = ReturnType<typeof hc<AppType>>;
 type ProfileEndpoint = Client["api"]["profile"][":id"]["$get"];
-type ProfileResponse = Extract<
+type ProfileResponseBase = Extract<
   InferResponseType<ProfileEndpoint>,
   { success: true }
 >;
+type ProfileResponse = ProfileResponseBase & {
+  data: ProfileResponseBase["data"] & {
+    backgroundUrl: string | null;
+  };
+};
 type PublicProfile = ProfileResponse["data"];
 
 export const Route = createFileRoute("/_student/profile/$profileId")({
@@ -93,14 +98,40 @@ function PublicProfilePage() {
       </Link>
 
       {/* Header */}
-      <div className="flex items-center gap-5">
-        <div className="flex size-20 items-center justify-center rounded-full bg-secondary">
-          <User className="size-9 text-muted-foreground" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            {profile.fullName ?? "Student"}
-          </h1>
+      <div className="overflow-hidden rounded-2xl bg-card shadow-sm ring-1 ring-border/50">
+        <div
+          className="h-44 bg-gradient-to-br from-accent/40 via-secondary to-background"
+          style={
+              profile.backgroundUrl
+                ? {
+                  backgroundImage: `linear-gradient(to bottom, rgba(255, 255, 255, 0.18), rgba(226, 232, 240, 0.08)), url(${profile.backgroundUrl})`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                  backgroundBlendMode: "soft-light",
+                }
+              : undefined
+          }
+        >
+          <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-white/18 via-white/8 to-transparent" />
+          <div className="pointer-events-none absolute bottom-4 left-6 h-28 w-[22rem] rounded-full bg-white/26 blur-3xl" />
+          <div className="flex h-full items-end gap-5 p-6">
+            {profile.avatarUrl ? (
+              <img
+                src={profile.avatarUrl}
+                alt={profile.fullName ?? "Avatar"}
+                className="size-20 rounded-full border-2 border-background object-cover shadow-sm"
+              />
+            ) : (
+              <div className="flex size-20 items-center justify-center rounded-full border-2 border-background bg-secondary shadow-sm">
+                <User className="size-9 text-muted-foreground" />
+              </div>
+            )}
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-white [text-shadow:0_2px_10px_rgba(15,23,42,0.24)]">
+                {profile.fullName ?? "Student"}
+              </h1>
+            </div>
+          </div>
         </div>
       </div>
 

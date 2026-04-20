@@ -2,6 +2,7 @@ import { count, eq } from "drizzle-orm";
 import { db } from "@my-better-t-app/db";
 import {
   discussionComments,
+  eventRegistrations,
   profiles,
   studentProfiles,
 } from "@my-better-t-app/db/schema";
@@ -24,6 +25,12 @@ export type ActivityGate = {
     missingRequiredProfileFields: RequiredProfileField[];
   };
   commentsPosted: number;
+  personalization: {
+    registeredEventsCount: number;
+    permissions: {
+      canChangeBackground: boolean;
+    };
+  };
   permissions: {
     canCommentOnDiscussions: boolean;
     canCreateDiscussions: boolean;
@@ -66,6 +73,7 @@ function isProfileFieldComplete(
 export function buildActivityGate(
   profile: ActivityGateProfileRow,
   commentsPosted: number,
+  registeredEventsCount: number,
 ): ActivityGate {
   const missingRequiredProfileFields = requiredProfileFields.filter(
     (field) => !isProfileFieldComplete(profile, field),
@@ -84,6 +92,12 @@ export function buildActivityGate(
       missingRequiredProfileFields,
     },
     commentsPosted,
+    personalization: {
+      registeredEventsCount,
+      permissions: {
+        canChangeBackground: isStudent ? registeredEventsCount >= 1 : true,
+      },
+    },
     permissions: {
       canCommentOnDiscussions: isStudent ? isComplete : true,
       canCreateDiscussions: isStudent ? commentsPosted > 0 : true,
@@ -92,7 +106,7 @@ export function buildActivityGate(
 }
 
 export async function getActivityGateForUser(userId: string): Promise<ActivityGate> {
-  const [profile, [commentCountRow]] = await Promise.all([
+  const [profile, [commentCountRow], [eventRegistrationsRow]] = await Promise.all([
     db
       .select({
         role: profiles.role,
@@ -111,7 +125,15 @@ export async function getActivityGateForUser(userId: string): Promise<ActivityGa
       .select({ value: count() })
       .from(discussionComments)
       .where(eq(discussionComments.authorId, userId)),
+    db
+      .select({ value: count() })
+      .from(eventRegistrations)
+      .where(eq(eventRegistrations.studentId, userId)),
   ]);
 
-  return buildActivityGate(profile, commentCountRow?.value ?? 0);
+  return buildActivityGate(
+    profile,
+    commentCountRow?.value ?? 0,
+    eventRegistrationsRow?.value ?? 0,
+  );
 }

@@ -13,6 +13,12 @@ export type ActivityGate = {
     missingRequiredProfileFields: RequiredProfileField[];
   };
   commentsPosted: number;
+  personalization: {
+    registeredEventsCount: number;
+    permissions: {
+      canChangeBackground: boolean;
+    };
+  };
   permissions: {
     canCommentOnDiscussions: boolean;
     canCreateDiscussions: boolean;
@@ -64,4 +70,13 @@ export function getDiscussionGateMessage(activityGate: ActivityGate): string {
   }
 
   return `${progressMessage} Complete your profile first so you can comment.`;
+}
+
+export function getBackgroundGateMessage(activityGate: ActivityGate): string {
+  if (activityGate.personalization.permissions.canChangeBackground) {
+    return "Profile background customization is unlocked.";
+  }
+
+  const progress = Math.min(activityGate.personalization.registeredEventsCount, 1);
+  return `Register for 1 event to unlock profile backgrounds (${progress}/1).`;
 }
