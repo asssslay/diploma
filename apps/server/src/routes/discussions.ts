@@ -55,7 +55,7 @@ const PROFILE_INCOMPLETE_FOR_COMMENTS =
   "PROFILE_INCOMPLETE_FOR_COMMENTS" as const;
 const DISCUSSION_CREATION_REQUIRES_COMMENT =
   "DISCUSSION_CREATION_REQUIRES_COMMENT" as const;
-const HELPFUL_REACTION_THRESHOLD = 2;
+const HELPFUL_REACTION_THRESHOLD = 10;
 
 async function getHelpfulAuthorIds(authorIds: string[]) {
   if (authorIds.length === 0) {
