@@ -39,13 +39,41 @@ import type { AppType } from "server";
 
 type Client = ReturnType<typeof hc<AppType>>;
 type DetailEndpoint = Client["api"]["discussions"][":id"]["$get"];
-type DetailResponse = Extract<InferResponseType<DetailEndpoint>, { success: true }> & {
-  viewerActivityGate: ActivityGate;
+type DetailResponseBase = Extract<
+  InferResponseType<DetailEndpoint>,
+  { success: true }
+>;
+type DetailComment = DetailResponseBase["data"]["comments"][number] & {
+  authorHasHelpfulMarker: boolean;
 };
-type DiscussionDetail = DetailResponse["data"];
+type DiscussionDetail = Omit<DetailResponseBase["data"], "comments"> & {
+  comments: DetailComment[];
+};
+type DetailResponse = DetailResponseBase & {
+  viewerActivityGate: ActivityGate;
+  data: DiscussionDetail;
+};
 type Comment = DiscussionDetail["comments"][number];
 
-type ServerComment = Omit<Comment, "reactionsCount" | "isReacted">;
+type ServerComment = Omit<
+  Comment,
+  "reactionsCount" | "isReacted" | "authorHasHelpfulMarker"
+>;
+type CreatedComment = ServerComment & Pick<Comment, "authorHasHelpfulMarker">;
+type HelpfulMarkerReactionResult = {
+  success: true;
+  data: {
+    reacted: boolean;
+    helpfulMarker?: {
+      authorId: string;
+      authorName: string | null;
+      authorHasHelpfulMarker: boolean;
+      achievementEarned: boolean;
+    };
+  };
+};
+
+const HELPFUL_REACTION_THRESHOLD = 10;
 
 export const Route = createFileRoute("/_student/discussions_/$discussionId")({
   component: DiscussionDetailPage,
@@ -68,7 +96,12 @@ function DiscussionDetailPage() {
 
   type OptimisticAction =
     | { type: "react-discussion" }
-    | { type: "react-comment"; commentId: string }
+    | {
+        type: "react-comment";
+        commentId: string;
+        helpfulAuthorId?: string;
+        authorHasHelpfulMarker?: boolean;
+      }
     | { type: "delete-comment"; commentId: string };
 
   const [optimistic, applyOptimistic] = useOptimistic(
@@ -86,9 +119,25 @@ function DiscussionDetailPage() {
           return {
             ...current,
             comments: current.comments.map((c) =>
-              c.id === action.commentId
-                ? { ...c, isReacted: !c.isReacted, reactionsCount: c.reactionsCount + (c.isReacted ? -1 : 1) }
-                : c,
+              {
+                const updated =
+                  c.id === action.commentId
+                    ? {
+                        ...c,
+                        isReacted: !c.isReacted,
+                        reactionsCount:
+                          c.reactionsCount + (c.isReacted ? -1 : 1),
+                      }
+                    : c;
+
+                return action.helpfulAuthorId === updated.authorId &&
+                  typeof action.authorHasHelpfulMarker === "boolean"
+                  ? {
+                      ...updated,
+                      authorHasHelpfulMarker: action.authorHasHelpfulMarker,
+                    }
+                  : updated;
+              },
             ),
           };
         case "delete-comment":
@@ -173,8 +222,13 @@ function DiscussionDetailPage() {
         return;
       }
       const json = await res.json();
-      const data = (json as { data: ServerComment }).data;
-      const newComment: Comment = { ...data, reactionsCount: 0, isReacted: false };
+      const data = (json as { data: CreatedComment }).data;
+      const newComment: Comment = {
+        ...data,
+        authorHasHelpfulMarker: data.authorHasHelpfulMarker,
+        reactionsCount: 0,
+        isReacted: false,
+      };
       setDiscussion((prev) =>
         prev ? { ...prev, comments: [...prev.comments, newComment] } : prev,
       );
@@ -216,27 +270,77 @@ function DiscussionDetailPage() {
   }
 
   function handleReactComment(commentId: string, wasReacted: boolean) {
+    const targetComment = discussion?.comments.find((c) => c.id === commentId);
+    const shouldUnlockHelpfulMarker =
+      !wasReacted &&
+      !!targetComment &&
+      !targetComment.authorHasHelpfulMarker &&
+      targetComment.reactionsCount >= HELPFUL_REACTION_THRESHOLD;
+
     startTransition(async () => {
-      applyOptimistic({ type: "react-comment", commentId });
+      applyOptimistic({
+        type: "react-comment",
+        commentId,
+        helpfulAuthorId: shouldUnlockHelpfulMarker
+          ? targetComment.authorId
+          : undefined,
+        authorHasHelpfulMarker: shouldUnlockHelpfulMarker ? true : undefined,
+      });
       try {
         const api = await getApiClient();
-        if (wasReacted) {
-          await api.api.discussions[":id"].comments[":commentId"].react.$delete({ param: { id: discussionId, commentId } });
-        } else {
-          await api.api.discussions[":id"].comments[":commentId"].react.$post({ param: { id: discussionId, commentId } });
+        const res = wasReacted
+          ? await api.api.discussions[":id"].comments[":commentId"].react.$delete({ param: { id: discussionId, commentId } })
+          : await api.api.discussions[":id"].comments[":commentId"].react.$post({ param: { id: discussionId, commentId } });
+
+        if (!res.ok) {
+          toast.error("Failed to react");
+          return;
         }
+
+        const json = (await res.json()) as HelpfulMarkerReactionResult;
+        const marker = json.data.helpfulMarker;
         setDiscussion((prev) =>
           prev
             ? {
                 ...prev,
                 comments: prev.comments.map((c) =>
-                  c.id === commentId
-                    ? { ...c, isReacted: !wasReacted, reactionsCount: c.reactionsCount + (wasReacted ? -1 : 1) }
-                    : c,
+                  {
+                    const updated =
+                      c.id === commentId
+                        ? {
+                            ...c,
+                            isReacted: !wasReacted,
+                            reactionsCount:
+                              c.reactionsCount + (wasReacted ? -1 : 1),
+                          }
+                        : c;
+
+                    return marker && updated.authorId === marker.authorId
+                      ? {
+                          ...updated,
+                          authorHasHelpfulMarker:
+                            marker.authorHasHelpfulMarker,
+                        }
+                      : updated;
+                  },
                 ),
               }
             : prev,
         );
+
+        if (!wasReacted && marker?.achievementEarned) {
+          const isOwnAchievement = marker.authorId === user?.id;
+          toast.success(
+            isOwnAchievement
+              ? "Achievement unlocked: Helpful contributor"
+              : "Helpful contributor unlocked",
+            {
+              description: isOwnAchievement
+                ? "One of your comments passed 10 positive reactions."
+                : `${marker.authorName ?? "A student"} earned the Helpful badge.`,
+            },
+          );
+        }
       } catch {
         toast.error("Failed to react");
       }
@@ -441,6 +545,11 @@ function DiscussionDetailPage() {
                       <Link to="/profile/$profileId" params={{ profileId: comment.authorId }} className="font-medium hover:underline">
                         {comment.authorName ?? "Unknown"}
                       </Link>
+                      {comment.authorHasHelpfulMarker && (
+                        <Badge className="rounded-full bg-lime-300/25 px-2 py-0.5 text-[10px] font-semibold text-lime-700 ring-1 ring-lime-400/40">
+                          &#10022; Helpful
+                        </Badge>
+                      )}
                       <span className="text-xs text-muted-foreground">
                         {formatDate(comment.createdAt)} · {formatTime(comment.createdAt)}
                       </span>
