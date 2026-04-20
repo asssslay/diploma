@@ -26,7 +26,7 @@ import { Route as AdminAuthenticatedStudentsRouteImport } from './routes/admin/_
 import { Route as AdminAuthenticatedNewsRouteImport } from './routes/admin/_authenticated/news'
 import { Route as AdminAuthenticatedEventsRouteImport } from './routes/admin/_authenticated/events'
 import { Route as AdminAuthenticatedDiscussionsRouteImport } from './routes/admin/_authenticated/discussions'
-import { Route as StudentProfileProfileIdRouteImport } from './routes/_student/profile.$profileId'
+import { Route as StudentProfileProfileIdRouteImport } from './routes/_student/profile_.$profileId'
 import { Route as StudentNewsNewsIdRouteImport } from './routes/_student/news.$newsId'
 import { Route as StudentEventsEventIdRouteImport } from './routes/_student/events.$eventId'
 import { Route as StudentDiscussionsDiscussionIdRouteImport } from './routes/_student/discussions_.$discussionId'
@@ -118,9 +118,9 @@ const AdminAuthenticatedDiscussionsRoute =
     getParentRoute: () => AdminAuthenticatedRoute,
   } as any)
 const StudentProfileProfileIdRoute = StudentProfileProfileIdRouteImport.update({
-  id: '/$profileId',
-  path: '/$profileId',
-  getParentRoute: () => StudentProfileRoute,
+  id: '/profile_/$profileId',
+  path: '/profile/$profileId',
+  getParentRoute: () => StudentRoute,
 } as any)
 const StudentNewsNewsIdRoute = StudentNewsNewsIdRouteImport.update({
   id: '/news/$newsId',
@@ -147,7 +147,7 @@ export interface FileRoutesByFullPath {
   '/discussions': typeof StudentDiscussionsRoute
   '/home': typeof StudentHomeRoute
   '/notes-deadlines': typeof StudentNotesDeadlinesRoute
-  '/profile': typeof StudentProfileRouteWithChildren
+  '/profile': typeof StudentProfileRoute
   '/settings': typeof StudentSettingsRoute
   '/admin/login': typeof AdminLoginRoute
   '/discussions/$discussionId': typeof StudentDiscussionsDiscussionIdRoute
@@ -168,7 +168,7 @@ export interface FileRoutesByTo {
   '/discussions': typeof StudentDiscussionsRoute
   '/home': typeof StudentHomeRoute
   '/notes-deadlines': typeof StudentNotesDeadlinesRoute
-  '/profile': typeof StudentProfileRouteWithChildren
+  '/profile': typeof StudentProfileRoute
   '/settings': typeof StudentSettingsRoute
   '/admin/login': typeof AdminLoginRoute
   '/discussions/$discussionId': typeof StudentDiscussionsDiscussionIdRoute
@@ -190,14 +190,14 @@ export interface FileRoutesById {
   '/_student/discussions': typeof StudentDiscussionsRoute
   '/_student/home': typeof StudentHomeRoute
   '/_student/notes-deadlines': typeof StudentNotesDeadlinesRoute
-  '/_student/profile': typeof StudentProfileRouteWithChildren
+  '/_student/profile': typeof StudentProfileRoute
   '/_student/settings': typeof StudentSettingsRoute
   '/admin/_authenticated': typeof AdminAuthenticatedRouteWithChildren
   '/admin/login': typeof AdminLoginRoute
   '/_student/discussions_/$discussionId': typeof StudentDiscussionsDiscussionIdRoute
   '/_student/events/$eventId': typeof StudentEventsEventIdRoute
   '/_student/news/$newsId': typeof StudentNewsNewsIdRoute
-  '/_student/profile/$profileId': typeof StudentProfileProfileIdRoute
+  '/_student/profile_/$profileId': typeof StudentProfileProfileIdRoute
   '/admin/_authenticated/discussions': typeof AdminAuthenticatedDiscussionsRoute
   '/admin/_authenticated/events': typeof AdminAuthenticatedEventsRoute
   '/admin/_authenticated/news': typeof AdminAuthenticatedNewsRoute
@@ -263,7 +263,7 @@ export interface FileRouteTypes {
     | '/_student/discussions_/$discussionId'
     | '/_student/events/$eventId'
     | '/_student/news/$newsId'
-    | '/_student/profile/$profileId'
+    | '/_student/profile_/$profileId'
     | '/admin/_authenticated/discussions'
     | '/admin/_authenticated/events'
     | '/admin/_authenticated/news'
@@ -400,12 +400,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAuthenticatedDiscussionsRouteImport
       parentRoute: typeof AdminAuthenticatedRoute
     }
-    '/_student/profile/$profileId': {
-      id: '/_student/profile/$profileId'
-      path: '/$profileId'
+    '/_student/profile_/$profileId': {
+      id: '/_student/profile_/$profileId'
+      path: '/profile/$profileId'
       fullPath: '/profile/$profileId'
       preLoaderRoute: typeof StudentProfileProfileIdRouteImport
-      parentRoute: typeof StudentProfileRoute
+      parentRoute: typeof StudentRoute
     }
     '/_student/news/$newsId': {
       id: '/_student/news/$newsId'
@@ -464,38 +464,28 @@ const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
   AdminRouteRouteChildren,
 )
 
-interface StudentProfileRouteChildren {
-  StudentProfileProfileIdRoute: typeof StudentProfileProfileIdRoute
-}
-
-const StudentProfileRouteChildren: StudentProfileRouteChildren = {
-  StudentProfileProfileIdRoute: StudentProfileProfileIdRoute,
-}
-
-const StudentProfileRouteWithChildren = StudentProfileRoute._addFileChildren(
-  StudentProfileRouteChildren,
-)
-
 interface StudentRouteChildren {
   StudentDiscussionsRoute: typeof StudentDiscussionsRoute
   StudentHomeRoute: typeof StudentHomeRoute
   StudentNotesDeadlinesRoute: typeof StudentNotesDeadlinesRoute
-  StudentProfileRoute: typeof StudentProfileRouteWithChildren
+  StudentProfileRoute: typeof StudentProfileRoute
   StudentSettingsRoute: typeof StudentSettingsRoute
   StudentDiscussionsDiscussionIdRoute: typeof StudentDiscussionsDiscussionIdRoute
   StudentEventsEventIdRoute: typeof StudentEventsEventIdRoute
   StudentNewsNewsIdRoute: typeof StudentNewsNewsIdRoute
+  StudentProfileProfileIdRoute: typeof StudentProfileProfileIdRoute
 }
 
 const StudentRouteChildren: StudentRouteChildren = {
   StudentDiscussionsRoute: StudentDiscussionsRoute,
   StudentHomeRoute: StudentHomeRoute,
   StudentNotesDeadlinesRoute: StudentNotesDeadlinesRoute,
-  StudentProfileRoute: StudentProfileRouteWithChildren,
+  StudentProfileRoute: StudentProfileRoute,
   StudentSettingsRoute: StudentSettingsRoute,
   StudentDiscussionsDiscussionIdRoute: StudentDiscussionsDiscussionIdRoute,
   StudentEventsEventIdRoute: StudentEventsEventIdRoute,
   StudentNewsNewsIdRoute: StudentNewsNewsIdRoute,
+  StudentProfileProfileIdRoute: StudentProfileProfileIdRoute,
 }
 
 const StudentRouteWithChildren =

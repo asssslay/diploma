@@ -31,7 +31,7 @@ type ProfileResponse = ProfileResponseBase & {
 };
 type PublicProfile = ProfileResponse["data"];
 
-export const Route = createFileRoute("/_student/profile/$profileId")({
+export const Route = createFileRoute("/_student/profile_/$profileId")({
   component: PublicProfilePage,
 });
 
