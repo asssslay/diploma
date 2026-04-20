@@ -44,15 +44,25 @@ function PublicProfilePage() {
     setIsLoading(true);
     try {
       const api = await getApiClient();
-      const res = await api.api.profile[":id"].$get({ param: { id: profileId } });
-      if (!res.ok) { toast.error("Failed to load profile"); return; }
+      const res = await api.api.profile[":id"].$get({
+        param: { id: profileId },
+      });
+      if (!res.ok) {
+        toast.error("Failed to load profile");
+        return;
+      }
       const json = (await res.json()) as ProfileResponse;
       setProfile(json.data);
-    } catch { toast.error("Failed to load profile"); }
-    finally { setIsLoading(false); }
+    } catch {
+      toast.error("Failed to load profile");
+    } finally {
+      setIsLoading(false);
+    }
   }, [profileId]);
 
-  useEffect(() => { fetchProfile(); }, [fetchProfile]);
+  useEffect(() => {
+    fetchProfile();
+  }, [fetchProfile]);
 
   if (isLoading) {
     return (
@@ -102,8 +112,8 @@ function PublicProfilePage() {
         <div
           className="h-44 bg-gradient-to-br from-accent/40 via-secondary to-background"
           style={
-              profile.backgroundUrl
-                ? {
+            profile.backgroundUrl
+              ? {
                   backgroundImage: `linear-gradient(to bottom, rgba(255, 255, 255, 0.18), rgba(226, 232, 240, 0.08)), url(${profile.backgroundUrl})`,
                   backgroundSize: "cover",
                   backgroundPosition: "center",
@@ -126,7 +136,7 @@ function PublicProfilePage() {
                 <User className="size-9 text-muted-foreground" />
               </div>
             )}
-            <div>
+            <div className="flex h-20 items-center">
               <h1 className="text-2xl font-bold tracking-tight text-white [text-shadow:0_2px_10px_rgba(15,23,42,0.24)]">
                 {profile.fullName ?? "Student"}
               </h1>
@@ -166,7 +176,9 @@ function PublicProfilePage() {
             </div>
             <div>
               <p className="text-[11px] text-muted-foreground">Joined</p>
-              <p className="text-sm font-medium">{formatDate(profile.createdAt)}</p>
+              <p className="text-sm font-medium">
+                {formatDate(profile.createdAt)}
+              </p>
             </div>
           </div>
         </div>
