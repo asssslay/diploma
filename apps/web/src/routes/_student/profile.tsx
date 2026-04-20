@@ -32,6 +32,12 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { formatDate } from "@/lib/utils";
+import {
+  type ActivityGate,
+  getCommentGateMessage,
+  getDiscussionGateMessage,
+  getMissingProfileFieldLabels,
+} from "@/lib/activity-gate";
 import { getApiClient } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
 import { env } from "@my-better-t-app/env/web";
@@ -39,7 +45,11 @@ import type { AppType } from "server";
 
 type Client = ReturnType<typeof hc<AppType>>;
 type MeEndpoint = Client["api"]["profile"]["me"]["$get"];
-type MeResponse = Extract<InferResponseType<MeEndpoint>, { success: true }>;
+type MeResponse = Extract<InferResponseType<MeEndpoint>, { success: true }> & {
+  data: Extract<InferResponseType<MeEndpoint>, { success: true }>["data"] & {
+    activityGate: ActivityGate;
+  };
+};
 type Profile = MeResponse["data"];
 
 export const Route = createFileRoute("/_student/profile")({
@@ -205,6 +215,9 @@ function ProfilePage() {
   }
 
   const statusBadge = STATUS_BADGE[profile.status];
+  const missingFields = getMissingProfileFieldLabels(
+    profile.activityGate.profileCompletion.missingRequiredProfileFields,
+  );
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-6 py-8">
@@ -262,6 +275,94 @@ function ProfilePage() {
           <Pencil className="size-4" />
           Edit Profile
         </Button>
+      </div>
+
+      <div className="rounded-xl bg-card p-6 shadow-sm ring-1 ring-border/50">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-sm font-semibold">Participation Progress</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Complete your profile and join discussions to unlock more participation features.
+            </p>
+          </div>
+          {!profile.activityGate.profileCompletion.isComplete && (
+            <Button variant="outline" className="rounded-lg" onClick={openEditDialog}>
+              Complete Profile
+            </Button>
+          )}
+        </div>
+
+        <div className="mt-5 space-y-5">
+          <div className="rounded-lg bg-background p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium">Profile completion</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {profile.activityGate.profileCompletion.completedFields}/
+                  {profile.activityGate.profileCompletion.totalFields} required fields completed
+                </p>
+              </div>
+              <Badge
+                variant={profile.activityGate.profileCompletion.isComplete ? "default" : "secondary"}
+                className="rounded-lg"
+              >
+                {profile.activityGate.profileCompletion.isComplete ? "Complete" : "In Progress"}
+              </Badge>
+            </div>
+            <div className="mt-3 h-2 overflow-hidden rounded-full bg-secondary">
+              <div
+                className="h-full rounded-full bg-primary transition-all"
+                style={{
+                  width: `${(profile.activityGate.profileCompletion.completedFields / profile.activityGate.profileCompletion.totalFields) * 100}%`,
+                }}
+              />
+            </div>
+            {missingFields.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {missingFields.map((field) => (
+                  <Badge key={field} variant="outline" className="rounded-lg">
+                    {field}
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="rounded-lg bg-background p-4">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-medium">Comment on discussions</p>
+                <Badge
+                  variant={profile.activityGate.permissions.canCommentOnDiscussions ? "default" : "secondary"}
+                  className="rounded-lg"
+                >
+                  {profile.activityGate.permissions.canCommentOnDiscussions ? "Unlocked" : "Locked"}
+                </Badge>
+              </div>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {getCommentGateMessage(profile.activityGate)}
+              </p>
+            </div>
+
+            <div className="rounded-lg bg-background p-4">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-medium">Create discussions</p>
+                <Badge
+                  variant={profile.activityGate.permissions.canCreateDiscussions ? "default" : "secondary"}
+                  className="rounded-lg"
+                >
+                  {profile.activityGate.permissions.canCreateDiscussions ? "Unlocked" : "Locked"}
+                </Badge>
+              </div>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {getDiscussionGateMessage(profile.activityGate)}
+              </p>
+              <p className="mt-2 text-xs text-muted-foreground/80">
+                Comments posted: {profile.activityGate.commentsPosted}
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Info Card */}

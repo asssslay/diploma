@@ -10,6 +10,7 @@ import {
   discussions,
   profiles,
 } from "@my-better-t-app/db/schema";
+import { getActivityGateForUser } from "@/lib/activity-gate";
 import { createRouter } from "@/lib/app";
 import { auth } from "@/middleware/auth";
 import { validationHook } from "@/lib/zod-hook";
@@ -50,6 +51,11 @@ const updateCommentSchema = z.object({
   content: z.string().min(1).max(500),
 });
 
+const PROFILE_INCOMPLETE_FOR_COMMENTS =
+  "PROFILE_INCOMPLETE_FOR_COMMENTS" as const;
+const DISCUSSION_CREATION_REQUIRES_COMMENT =
+  "DISCUSSION_CREATION_REQUIRES_COMMENT" as const;
+
 const app = createRouter()
   .use("/*", auth)
 
@@ -57,12 +63,13 @@ const app = createRouter()
   .get("/", zValidator("query", listQuerySchema, validationHook), async (c) => {
     const { page, pageSize, category } = c.req.valid("query");
     const offset = (page - 1) * pageSize;
+    const user = c.get("user");
 
     const where = category
       ? eq(discussions.category, category)
       : undefined;
 
-    const [items, [total]] = await Promise.all([
+    const [items, [total], viewerActivityGate] = await Promise.all([
       db
         .select({
           id: discussions.id,
@@ -85,6 +92,7 @@ const app = createRouter()
         .select({ value: count() })
         .from(discussions)
         .where(where),
+      getActivityGateForUser(user.id),
     ]);
 
     const itemsWithCounts = await Promise.all(
@@ -110,6 +118,7 @@ const app = createRouter()
     return c.json({
       success: true,
       data: itemsWithCounts,
+      viewerActivityGate,
       total: total?.value ?? 0,
       page,
       pageSize,
@@ -147,7 +156,7 @@ const app = createRouter()
       throw new HTTPException(404, { message: "Discussion not found" });
     }
 
-    const [[reactionsCount], [userReaction]] = await Promise.all([
+    const [[reactionsCount], [userReaction], viewerActivityGate] = await Promise.all([
       db
         .select({ value: count() })
         .from(discussionReactions)
@@ -161,6 +170,7 @@ const app = createRouter()
             eq(discussionReactions.userId, user.id),
           ),
         ),
+      getActivityGateForUser(user.id),
     ]);
 
     const comments = await db
@@ -204,6 +214,7 @@ const app = createRouter()
 
     return c.json({
       success: true,
+      viewerActivityGate,
       data: {
         ...discussion,
         reactionsCount: reactionsCount?.value ?? 0,
@@ -220,6 +231,19 @@ const app = createRouter()
     async (c) => {
       const { title, content, category } = c.req.valid("json");
       const user = c.get("user");
+      const activityGate = await getActivityGateForUser(user.id);
+
+      if (!activityGate.permissions.canCreateDiscussions) {
+        return c.json(
+          {
+            success: false,
+            error: "Post at least one discussion comment to unlock new discussions.",
+            code: DISCUSSION_CREATION_REQUIRES_COMMENT,
+            activityGate,
+          },
+          403,
+        );
+      }
 
       const [discussion] = await db
         .insert(discussions)
@@ -332,6 +356,19 @@ const app = createRouter()
       const { id } = c.req.valid("param");
       const user = c.get("user");
       const { content } = c.req.valid("json");
+      const activityGate = await getActivityGateForUser(user.id);
+
+      if (!activityGate.permissions.canCommentOnDiscussions) {
+        return c.json(
+          {
+            success: false,
+            error: "Complete your profile before commenting on discussions.",
+            code: PROFILE_INCOMPLETE_FOR_COMMENTS,
+            activityGate,
+          },
+          403,
+        );
+      }
 
       const [discussion] = await db
         .select({ id: discussions.id })

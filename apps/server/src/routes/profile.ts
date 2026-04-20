@@ -5,6 +5,7 @@ import { z } from "zod";
 import { db } from "@my-better-t-app/db";
 import { profiles, studentProfiles } from "@my-better-t-app/db/schema";
 import { supabaseAdmin } from "@my-better-t-app/db/supabase-admin";
+import { getActivityGateForUser } from "@/lib/activity-gate";
 import { createRouter } from "@/lib/app";
 import { auth } from "@/middleware/auth";
 import { validationHook } from "@/lib/zod-hook";
@@ -31,30 +32,34 @@ const app = createRouter()
   .get("/me", async (c) => {
     const user = c.get("user");
 
-    const [profile] = await db
-      .select({
-        id: profiles.id,
-        email: profiles.email,
-        fullName: profiles.fullName,
-        role: profiles.role,
-        status: profiles.status,
-        createdAt: profiles.createdAt,
-        faculty: studentProfiles.faculty,
-        group: studentProfiles.group,
-        avatarUrl: studentProfiles.avatarUrl,
-        bio: studentProfiles.bio,
-        interests: studentProfiles.interests,
-      })
-      .from(profiles)
-      .leftJoin(studentProfiles, eq(profiles.id, studentProfiles.id))
-      .where(eq(profiles.id, user.id))
-      .limit(1);
+    const [profile, activityGate] = await Promise.all([
+      db
+        .select({
+          id: profiles.id,
+          email: profiles.email,
+          fullName: profiles.fullName,
+          role: profiles.role,
+          status: profiles.status,
+          createdAt: profiles.createdAt,
+          faculty: studentProfiles.faculty,
+          group: studentProfiles.group,
+          avatarUrl: studentProfiles.avatarUrl,
+          bio: studentProfiles.bio,
+          interests: studentProfiles.interests,
+        })
+        .from(profiles)
+        .leftJoin(studentProfiles, eq(profiles.id, studentProfiles.id))
+        .where(eq(profiles.id, user.id))
+        .limit(1)
+        .then((rows) => rows[0]),
+      getActivityGateForUser(user.id),
+    ]);
 
     if (!profile) {
       throw new HTTPException(404, { message: "Profile not found" });
     }
 
-    return c.json({ success: true, data: profile });
+    return c.json({ success: true, data: { ...profile, activityGate } });
   })
 
   .get("/:id", zValidator("param", idParamSchema, validationHook), async (c) => {
@@ -151,26 +156,30 @@ const app = createRouter()
         .where(eq(studentProfiles.id, user.id));
     }
 
-    const [profile] = await db
-      .select({
-        id: profiles.id,
-        email: profiles.email,
-        fullName: profiles.fullName,
-        role: profiles.role,
-        status: profiles.status,
-        createdAt: profiles.createdAt,
-        faculty: studentProfiles.faculty,
-        group: studentProfiles.group,
-        avatarUrl: studentProfiles.avatarUrl,
-        bio: studentProfiles.bio,
-        interests: studentProfiles.interests,
-      })
-      .from(profiles)
-      .leftJoin(studentProfiles, eq(profiles.id, studentProfiles.id))
-      .where(eq(profiles.id, user.id))
-      .limit(1);
+    const [profile, activityGate] = await Promise.all([
+      db
+        .select({
+          id: profiles.id,
+          email: profiles.email,
+          fullName: profiles.fullName,
+          role: profiles.role,
+          status: profiles.status,
+          createdAt: profiles.createdAt,
+          faculty: studentProfiles.faculty,
+          group: studentProfiles.group,
+          avatarUrl: studentProfiles.avatarUrl,
+          bio: studentProfiles.bio,
+          interests: studentProfiles.interests,
+        })
+        .from(profiles)
+        .leftJoin(studentProfiles, eq(profiles.id, studentProfiles.id))
+        .where(eq(profiles.id, user.id))
+        .limit(1)
+        .then((rows) => rows[0]),
+      getActivityGateForUser(user.id),
+    ]);
 
-    return c.json({ success: true, data: profile });
+    return c.json({ success: true, data: profile ? { ...profile, activityGate } : profile });
   });
 
 export default app;

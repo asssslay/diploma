@@ -27,14 +27,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  type ActivityGate,
+  getCommentGateMessage,
+  getMissingProfileFieldLabels,
+} from "@/lib/activity-gate";
 import { formatDate, formatTime, isEdited } from "@/lib/utils";
 import { useAuth } from "@/context/auth";
-import { getApiClient } from "@/lib/api";
+import { getApiClient, readApiErrorResponse } from "@/lib/api";
 import type { AppType } from "server";
 
 type Client = ReturnType<typeof hc<AppType>>;
 type DetailEndpoint = Client["api"]["discussions"][":id"]["$get"];
-type DetailResponse = Extract<InferResponseType<DetailEndpoint>, { success: true }>;
+type DetailResponse = Extract<InferResponseType<DetailEndpoint>, { success: true }> & {
+  viewerActivityGate: ActivityGate;
+};
 type DiscussionDetail = DetailResponse["data"];
 type Comment = DiscussionDetail["comments"][number];
 
@@ -56,6 +63,7 @@ function DiscussionDetailPage() {
   const { discussionId } = Route.useParams();
   const { user } = useAuth();
   const [discussion, setDiscussion] = useState<DiscussionDetail | null>(null);
+  const [viewerActivityGate, setViewerActivityGate] = useState<ActivityGate | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   type OptimisticAction =
@@ -117,6 +125,7 @@ function DiscussionDetailPage() {
       if (!res.ok) { toast.error("Failed to load discussion"); return; }
       const json = (await res.json()) as DetailResponse;
       setDiscussion(json.data);
+      setViewerActivityGate(json.viewerActivityGate);
     } catch { toast.error("Failed to load discussion"); }
     finally { setIsLoading(false); }
   }, [discussionId]);
@@ -155,12 +164,31 @@ function DiscussionDetailPage() {
         param: { id: discussionId },
         json: { content: commentText.trim() },
       });
-      if (!res.ok) { toast.error("Failed to add comment"); return; }
+      if (!res.ok) {
+        const apiError = await readApiErrorResponse(res);
+        if (apiError?.activityGate) {
+          setViewerActivityGate(apiError.activityGate);
+        }
+        toast.error(apiError?.error ?? "Failed to add comment");
+        return;
+      }
       const json = await res.json();
       const data = (json as { data: ServerComment }).data;
       const newComment: Comment = { ...data, reactionsCount: 0, isReacted: false };
       setDiscussion((prev) =>
         prev ? { ...prev, comments: [...prev.comments, newComment] } : prev,
+      );
+      setViewerActivityGate((prev: ActivityGate | null) =>
+        prev
+          ? {
+              ...prev,
+              commentsPosted: prev.commentsPosted + 1,
+              permissions: {
+                ...prev.permissions,
+                canCreateDiscussions: true,
+              },
+            }
+          : prev,
       );
       setCommentText("");
     } catch { toast.error("Failed to add comment"); }
@@ -216,6 +244,11 @@ function DiscussionDetailPage() {
   }
 
   const isOwner = discussion?.authorId === user?.id;
+  const missingFields = viewerActivityGate
+    ? getMissingProfileFieldLabels(
+        viewerActivityGate.profileCompletion.missingRequiredProfileFields,
+      )
+    : [];
 
   function openEditDialog() {
     if (!discussion) return;
@@ -454,6 +487,26 @@ function DiscussionDetailPage() {
 
         {/* Add Comment */}
         <div className="rounded-xl bg-card p-4 shadow-sm ring-1 ring-border/50">
+          {viewerActivityGate && !viewerActivityGate.permissions.canCommentOnDiscussions && (
+            <div className="mb-4 rounded-lg bg-secondary p-3 text-sm text-muted-foreground">
+              <p>{getCommentGateMessage(viewerActivityGate)}</p>
+              {missingFields.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {missingFields.map((field) => (
+                    <Badge key={field} variant="outline" className="rounded-lg">
+                      {field}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+              <Link
+                to="/profile"
+                className="mt-3 inline-flex text-sm font-medium text-foreground hover:underline"
+              >
+                Go to profile
+              </Link>
+            </div>
+          )}
           <Textarea
             placeholder="Write a comment..."
             value={commentText}
@@ -461,6 +514,7 @@ function DiscussionDetailPage() {
             rows={3}
             maxLength={500}
             className="rounded-lg bg-background"
+            disabled={!viewerActivityGate?.permissions.canCommentOnDiscussions}
           />
           <div className="mt-2 flex items-center justify-between">
             <span className={`text-xs ${commentText.length > 450 ? `text-destructive` : `text-muted-foreground`}`}>
@@ -470,7 +524,12 @@ function DiscussionDetailPage() {
               size="sm"
               className="rounded-lg"
               onClick={handleAddComment}
-              disabled={!commentText.trim() || commentText.length > 500 || isAddingComment}
+              disabled={
+                !viewerActivityGate?.permissions.canCommentOnDiscussions ||
+                !commentText.trim() ||
+                commentText.length > 500 ||
+                isAddingComment
+              }
             >
               {isAddingComment ? "Posting..." : "Post Comment"}
             </Button>
