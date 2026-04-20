@@ -29,13 +29,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  type ActivityGate,
+  getDiscussionGateMessage,
+} from "@/lib/activity-gate";
 import { formatDate } from "@/lib/utils";
-import { getApiClient } from "@/lib/api";
+import { getApiClient, readApiErrorResponse } from "@/lib/api";
 import type { AppType } from "server";
 
 type Client = ReturnType<typeof hc<AppType>>;
 type ListEndpoint = Client["api"]["discussions"]["$get"];
-type ListResponse = Extract<InferResponseType<ListEndpoint>, { success: true }>;
+type ListResponse = Extract<InferResponseType<ListEndpoint>, { success: true }> & {
+  viewerActivityGate: ActivityGate;
+};
 type Discussion = ListResponse["data"][number];
 
 export const Route = createFileRoute("/_student/discussions")({
@@ -83,6 +89,7 @@ function DiscussionsPage() {
   const [page, setPage] = useState(1);
   const [pageSize] = useState(10);
   const [isLoading, setIsLoading] = useState(true);
+  const [viewerActivityGate, setViewerActivityGate] = useState<ActivityGate | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>(undefined);
   const [searchOpen, setSearchOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -112,6 +119,7 @@ function DiscussionsPage() {
       const json = (await res.json()) as ListResponse;
       setDiscussions(json.data);
       setTotal(json.total);
+      setViewerActivityGate(json.viewerActivityGate);
     } catch { toast.error("Failed to load discussions"); }
     finally { setIsLoading(false); }
   }, [page, pageSize, categoryFilter]);
@@ -158,7 +166,14 @@ function DiscussionsPage() {
           category: result.data.category,
         },
       });
-      if (!res.ok) { toast.error("Failed to create discussion"); return; }
+      if (!res.ok) {
+        const apiError = await readApiErrorResponse(res);
+        if (apiError?.activityGate) {
+          setViewerActivityGate(apiError.activityGate);
+        }
+        toast.error(apiError?.error ?? "Failed to create discussion");
+        return;
+      }
       toast.success("Discussion created");
       setCreateOpen(false);
       resetForm();
@@ -175,8 +190,17 @@ function DiscussionsPage() {
           <p className="mt-1 text-sm text-muted-foreground">
             Join conversations with the university community.
           </p>
+          {viewerActivityGate && (
+            <p className="mt-2 text-sm text-muted-foreground">
+              {getDiscussionGateMessage(viewerActivityGate)}
+            </p>
+          )}
         </div>
-        <Button className="rounded-lg" onClick={() => setCreateOpen(true)}>
+        <Button
+          className="rounded-lg"
+          onClick={() => setCreateOpen(true)}
+          disabled={!viewerActivityGate?.permissions.canCreateDiscussions}
+        >
           <Plus className="mr-2 size-4" />
           New Discussion
         </Button>

@@ -27,18 +27,53 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  type ActivityGate,
+  getCommentGateMessage,
+  getMissingProfileFieldLabels,
+} from "@/lib/activity-gate";
 import { formatDate, formatTime, isEdited } from "@/lib/utils";
 import { useAuth } from "@/context/auth";
-import { getApiClient } from "@/lib/api";
+import { getApiClient, readApiErrorResponse } from "@/lib/api";
 import type { AppType } from "server";
 
 type Client = ReturnType<typeof hc<AppType>>;
 type DetailEndpoint = Client["api"]["discussions"][":id"]["$get"];
-type DetailResponse = Extract<InferResponseType<DetailEndpoint>, { success: true }>;
-type DiscussionDetail = DetailResponse["data"];
+type DetailResponseBase = Extract<
+  InferResponseType<DetailEndpoint>,
+  { success: true }
+>;
+type DetailComment = DetailResponseBase["data"]["comments"][number] & {
+  authorHasHelpfulMarker: boolean;
+};
+type DiscussionDetail = Omit<DetailResponseBase["data"], "comments"> & {
+  comments: DetailComment[];
+};
+type DetailResponse = DetailResponseBase & {
+  viewerActivityGate: ActivityGate;
+  data: DiscussionDetail;
+};
 type Comment = DiscussionDetail["comments"][number];
 
-type ServerComment = Omit<Comment, "reactionsCount" | "isReacted">;
+type ServerComment = Omit<
+  Comment,
+  "reactionsCount" | "isReacted" | "authorHasHelpfulMarker"
+>;
+type CreatedComment = ServerComment & Pick<Comment, "authorHasHelpfulMarker">;
+type HelpfulMarkerReactionResult = {
+  success: true;
+  data: {
+    reacted: boolean;
+    helpfulMarker?: {
+      authorId: string;
+      authorName: string | null;
+      authorHasHelpfulMarker: boolean;
+      achievementEarned: boolean;
+    };
+  };
+};
+
+const HELPFUL_REACTION_THRESHOLD = 10;
 
 export const Route = createFileRoute("/_student/discussions_/$discussionId")({
   component: DiscussionDetailPage,
@@ -56,11 +91,17 @@ function DiscussionDetailPage() {
   const { discussionId } = Route.useParams();
   const { user } = useAuth();
   const [discussion, setDiscussion] = useState<DiscussionDetail | null>(null);
+  const [viewerActivityGate, setViewerActivityGate] = useState<ActivityGate | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   type OptimisticAction =
     | { type: "react-discussion" }
-    | { type: "react-comment"; commentId: string }
+    | {
+        type: "react-comment";
+        commentId: string;
+        helpfulAuthorId?: string;
+        authorHasHelpfulMarker?: boolean;
+      }
     | { type: "delete-comment"; commentId: string };
 
   const [optimistic, applyOptimistic] = useOptimistic(
@@ -78,9 +119,25 @@ function DiscussionDetailPage() {
           return {
             ...current,
             comments: current.comments.map((c) =>
-              c.id === action.commentId
-                ? { ...c, isReacted: !c.isReacted, reactionsCount: c.reactionsCount + (c.isReacted ? -1 : 1) }
-                : c,
+              {
+                const updated =
+                  c.id === action.commentId
+                    ? {
+                        ...c,
+                        isReacted: !c.isReacted,
+                        reactionsCount:
+                          c.reactionsCount + (c.isReacted ? -1 : 1),
+                      }
+                    : c;
+
+                return action.helpfulAuthorId === updated.authorId &&
+                  typeof action.authorHasHelpfulMarker === "boolean"
+                  ? {
+                      ...updated,
+                      authorHasHelpfulMarker: action.authorHasHelpfulMarker,
+                    }
+                  : updated;
+              },
             ),
           };
         case "delete-comment":
@@ -117,6 +174,7 @@ function DiscussionDetailPage() {
       if (!res.ok) { toast.error("Failed to load discussion"); return; }
       const json = (await res.json()) as DetailResponse;
       setDiscussion(json.data);
+      setViewerActivityGate(json.viewerActivityGate);
     } catch { toast.error("Failed to load discussion"); }
     finally { setIsLoading(false); }
   }, [discussionId]);
@@ -155,12 +213,36 @@ function DiscussionDetailPage() {
         param: { id: discussionId },
         json: { content: commentText.trim() },
       });
-      if (!res.ok) { toast.error("Failed to add comment"); return; }
+      if (!res.ok) {
+        const apiError = await readApiErrorResponse(res);
+        if (apiError?.activityGate) {
+          setViewerActivityGate(apiError.activityGate);
+        }
+        toast.error(apiError?.error ?? "Failed to add comment");
+        return;
+      }
       const json = await res.json();
-      const data = (json as { data: ServerComment }).data;
-      const newComment: Comment = { ...data, reactionsCount: 0, isReacted: false };
+      const data = (json as { data: CreatedComment }).data;
+      const newComment: Comment = {
+        ...data,
+        authorHasHelpfulMarker: data.authorHasHelpfulMarker,
+        reactionsCount: 0,
+        isReacted: false,
+      };
       setDiscussion((prev) =>
         prev ? { ...prev, comments: [...prev.comments, newComment] } : prev,
+      );
+      setViewerActivityGate((prev: ActivityGate | null) =>
+        prev
+          ? {
+              ...prev,
+              commentsPosted: prev.commentsPosted + 1,
+              permissions: {
+                ...prev.permissions,
+                canCreateDiscussions: true,
+              },
+            }
+          : prev,
       );
       setCommentText("");
     } catch { toast.error("Failed to add comment"); }
@@ -188,27 +270,77 @@ function DiscussionDetailPage() {
   }
 
   function handleReactComment(commentId: string, wasReacted: boolean) {
+    const targetComment = discussion?.comments.find((c) => c.id === commentId);
+    const shouldUnlockHelpfulMarker =
+      !wasReacted &&
+      !!targetComment &&
+      !targetComment.authorHasHelpfulMarker &&
+      targetComment.reactionsCount >= HELPFUL_REACTION_THRESHOLD;
+
     startTransition(async () => {
-      applyOptimistic({ type: "react-comment", commentId });
+      applyOptimistic({
+        type: "react-comment",
+        commentId,
+        helpfulAuthorId: shouldUnlockHelpfulMarker
+          ? targetComment.authorId
+          : undefined,
+        authorHasHelpfulMarker: shouldUnlockHelpfulMarker ? true : undefined,
+      });
       try {
         const api = await getApiClient();
-        if (wasReacted) {
-          await api.api.discussions[":id"].comments[":commentId"].react.$delete({ param: { id: discussionId, commentId } });
-        } else {
-          await api.api.discussions[":id"].comments[":commentId"].react.$post({ param: { id: discussionId, commentId } });
+        const res = wasReacted
+          ? await api.api.discussions[":id"].comments[":commentId"].react.$delete({ param: { id: discussionId, commentId } })
+          : await api.api.discussions[":id"].comments[":commentId"].react.$post({ param: { id: discussionId, commentId } });
+
+        if (!res.ok) {
+          toast.error("Failed to react");
+          return;
         }
+
+        const json = (await res.json()) as HelpfulMarkerReactionResult;
+        const marker = json.data.helpfulMarker;
         setDiscussion((prev) =>
           prev
             ? {
                 ...prev,
                 comments: prev.comments.map((c) =>
-                  c.id === commentId
-                    ? { ...c, isReacted: !wasReacted, reactionsCount: c.reactionsCount + (wasReacted ? -1 : 1) }
-                    : c,
+                  {
+                    const updated =
+                      c.id === commentId
+                        ? {
+                            ...c,
+                            isReacted: !wasReacted,
+                            reactionsCount:
+                              c.reactionsCount + (wasReacted ? -1 : 1),
+                          }
+                        : c;
+
+                    return marker && updated.authorId === marker.authorId
+                      ? {
+                          ...updated,
+                          authorHasHelpfulMarker:
+                            marker.authorHasHelpfulMarker,
+                        }
+                      : updated;
+                  },
                 ),
               }
             : prev,
         );
+
+        if (!wasReacted && marker?.achievementEarned) {
+          const isOwnAchievement = marker.authorId === user?.id;
+          toast.success(
+            isOwnAchievement
+              ? "Achievement unlocked: Helpful contributor"
+              : "Helpful contributor unlocked",
+            {
+              description: isOwnAchievement
+                ? "One of your comments passed 10 positive reactions."
+                : `${marker.authorName ?? "A student"} earned the Helpful badge.`,
+            },
+          );
+        }
       } catch {
         toast.error("Failed to react");
       }
@@ -216,6 +348,11 @@ function DiscussionDetailPage() {
   }
 
   const isOwner = discussion?.authorId === user?.id;
+  const missingFields = viewerActivityGate
+    ? getMissingProfileFieldLabels(
+        viewerActivityGate.profileCompletion.missingRequiredProfileFields,
+      )
+    : [];
 
   function openEditDialog() {
     if (!discussion) return;
@@ -408,6 +545,11 @@ function DiscussionDetailPage() {
                       <Link to="/profile/$profileId" params={{ profileId: comment.authorId }} className="font-medium hover:underline">
                         {comment.authorName ?? "Unknown"}
                       </Link>
+                      {comment.authorHasHelpfulMarker && (
+                        <Badge className="rounded-full bg-lime-300/25 px-2 py-0.5 text-[10px] font-semibold text-lime-700 ring-1 ring-lime-400/40">
+                          &#10022; Helpful
+                        </Badge>
+                      )}
                       <span className="text-xs text-muted-foreground">
                         {formatDate(comment.createdAt)} · {formatTime(comment.createdAt)}
                       </span>
@@ -454,6 +596,26 @@ function DiscussionDetailPage() {
 
         {/* Add Comment */}
         <div className="rounded-xl bg-card p-4 shadow-sm ring-1 ring-border/50">
+          {viewerActivityGate && !viewerActivityGate.permissions.canCommentOnDiscussions && (
+            <div className="mb-4 rounded-lg bg-secondary p-3 text-sm text-muted-foreground">
+              <p>{getCommentGateMessage(viewerActivityGate)}</p>
+              {missingFields.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {missingFields.map((field) => (
+                    <Badge key={field} variant="outline" className="rounded-lg">
+                      {field}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+              <Link
+                to="/profile"
+                className="mt-3 inline-flex text-sm font-medium text-foreground hover:underline"
+              >
+                Go to profile
+              </Link>
+            </div>
+          )}
           <Textarea
             placeholder="Write a comment..."
             value={commentText}
@@ -461,6 +623,7 @@ function DiscussionDetailPage() {
             rows={3}
             maxLength={500}
             className="rounded-lg bg-background"
+            disabled={!viewerActivityGate?.permissions.canCommentOnDiscussions}
           />
           <div className="mt-2 flex items-center justify-between">
             <span className={`text-xs ${commentText.length > 450 ? `text-destructive` : `text-muted-foreground`}`}>
@@ -470,7 +633,12 @@ function DiscussionDetailPage() {
               size="sm"
               className="rounded-lg"
               onClick={handleAddComment}
-              disabled={!commentText.trim() || commentText.length > 500 || isAddingComment}
+              disabled={
+                !viewerActivityGate?.permissions.canCommentOnDiscussions ||
+                !commentText.trim() ||
+                commentText.length > 500 ||
+                isAddingComment
+              }
             >
               {isAddingComment ? "Posting..." : "Post Comment"}
             </Button>

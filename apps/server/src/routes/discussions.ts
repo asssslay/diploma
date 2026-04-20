@@ -1,6 +1,6 @@
 import { zValidator } from "@hono/zod-validator";
 import { HTTPException } from "hono/http-exception";
-import { and, count, desc, eq, sql } from "drizzle-orm";
+import { and, count, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@my-better-t-app/db";
 import {
@@ -10,6 +10,7 @@ import {
   discussions,
   profiles,
 } from "@my-better-t-app/db/schema";
+import { getActivityGateForUser } from "@/lib/activity-gate";
 import { createRouter } from "@/lib/app";
 import { auth } from "@/middleware/auth";
 import { validationHook } from "@/lib/zod-hook";
@@ -50,6 +51,51 @@ const updateCommentSchema = z.object({
   content: z.string().min(1).max(500),
 });
 
+const PROFILE_INCOMPLETE_FOR_COMMENTS =
+  "PROFILE_INCOMPLETE_FOR_COMMENTS" as const;
+const DISCUSSION_CREATION_REQUIRES_COMMENT =
+  "DISCUSSION_CREATION_REQUIRES_COMMENT" as const;
+const HELPFUL_REACTION_THRESHOLD = 10;
+
+async function getHelpfulAuthorIds(authorIds: string[]) {
+  if (authorIds.length === 0) {
+    return new Set<string>();
+  }
+
+  const rows = await db
+    .select({ authorId: discussionComments.authorId })
+    .from(discussionComments)
+    .innerJoin(
+      commentReactions,
+      eq(commentReactions.commentId, discussionComments.id),
+    )
+    .where(inArray(discussionComments.authorId, authorIds))
+    .groupBy(discussionComments.id, discussionComments.authorId)
+    .having(
+      sql`count(${commentReactions.id}) >= ${HELPFUL_REACTION_THRESHOLD}`,
+    );
+
+  return new Set(rows.map((row) => row.authorId));
+}
+
+async function getCommentAuthor(commentId: string) {
+  const [comment] = await db
+    .select({
+      authorId: discussionComments.authorId,
+      authorName: profiles.fullName,
+    })
+    .from(discussionComments)
+    .leftJoin(profiles, eq(discussionComments.authorId, profiles.id))
+    .where(eq(discussionComments.id, commentId))
+    .limit(1);
+
+  if (!comment) {
+    throw new HTTPException(404, { message: "Comment not found" });
+  }
+
+  return comment;
+}
+
 const app = createRouter()
   .use("/*", auth)
 
@@ -57,12 +103,11 @@ const app = createRouter()
   .get("/", zValidator("query", listQuerySchema, validationHook), async (c) => {
     const { page, pageSize, category } = c.req.valid("query");
     const offset = (page - 1) * pageSize;
+    const user = c.get("user");
 
-    const where = category
-      ? eq(discussions.category, category)
-      : undefined;
+    const where = category ? eq(discussions.category, category) : undefined;
 
-    const [items, [total]] = await Promise.all([
+    const [items, [total], viewerActivityGate] = await Promise.all([
       db
         .select({
           id: discussions.id,
@@ -81,10 +126,8 @@ const app = createRouter()
         .orderBy(desc(discussions.createdAt))
         .limit(pageSize)
         .offset(offset),
-      db
-        .select({ value: count() })
-        .from(discussions)
-        .where(where),
+      db.select({ value: count() }).from(discussions).where(where),
+      getActivityGateForUser(user.id),
     ]);
 
     const itemsWithCounts = await Promise.all(
@@ -110,6 +153,7 @@ const app = createRouter()
     return c.json({
       success: true,
       data: itemsWithCounts,
+      viewerActivityGate,
       total: total?.value ?? 0,
       page,
       pageSize,
@@ -117,101 +161,114 @@ const app = createRouter()
   })
 
   // Get discussion detail
-  .get("/:id", zValidator("param", idParamSchema, validationHook), async (c) => {
-    const { id } = c.req.valid("param");
-    const user = c.get("user");
+  .get(
+    "/:id",
+    zValidator("param", idParamSchema, validationHook),
+    async (c) => {
+      const { id } = c.req.valid("param");
+      const user = c.get("user");
 
-    await db
-      .update(discussions)
-      .set({ viewCount: sql`${discussions.viewCount} + 1` })
-      .where(eq(discussions.id, id));
+      await db
+        .update(discussions)
+        .set({ viewCount: sql`${discussions.viewCount} + 1` })
+        .where(eq(discussions.id, id));
 
-    const [discussion] = await db
-      .select({
-        id: discussions.id,
-        title: discussions.title,
-        content: discussions.content,
-        category: discussions.category,
-        authorId: discussions.authorId,
-        authorName: profiles.fullName,
-        viewCount: discussions.viewCount,
-        createdAt: discussions.createdAt,
-        updatedAt: discussions.updatedAt,
-      })
-      .from(discussions)
-      .leftJoin(profiles, eq(discussions.authorId, profiles.id))
-      .where(eq(discussions.id, id))
-      .limit(1);
+      const [discussion] = await db
+        .select({
+          id: discussions.id,
+          title: discussions.title,
+          content: discussions.content,
+          category: discussions.category,
+          authorId: discussions.authorId,
+          authorName: profiles.fullName,
+          viewCount: discussions.viewCount,
+          createdAt: discussions.createdAt,
+          updatedAt: discussions.updatedAt,
+        })
+        .from(discussions)
+        .leftJoin(profiles, eq(discussions.authorId, profiles.id))
+        .where(eq(discussions.id, id))
+        .limit(1);
 
-    if (!discussion) {
-      throw new HTTPException(404, { message: "Discussion not found" });
-    }
+      if (!discussion) {
+        throw new HTTPException(404, { message: "Discussion not found" });
+      }
 
-    const [[reactionsCount], [userReaction]] = await Promise.all([
-      db
-        .select({ value: count() })
-        .from(discussionReactions)
-        .where(eq(discussionReactions.discussionId, id)),
-      db
-        .select({ value: count() })
-        .from(discussionReactions)
-        .where(
-          and(
-            eq(discussionReactions.discussionId, id),
-            eq(discussionReactions.userId, user.id),
-          ),
-        ),
-    ]);
-
-    const comments = await db
-      .select({
-        id: discussionComments.id,
-        content: discussionComments.content,
-        authorId: discussionComments.authorId,
-        authorName: profiles.fullName,
-        createdAt: discussionComments.createdAt,
-        updatedAt: discussionComments.updatedAt,
-      })
-      .from(discussionComments)
-      .leftJoin(profiles, eq(discussionComments.authorId, profiles.id))
-      .where(eq(discussionComments.discussionId, id))
-      .orderBy(discussionComments.createdAt);
-
-    const commentsWithReactions = await Promise.all(
-      comments.map(async (comment) => {
-        const [[cReactions], [cUserReaction]] = await Promise.all([
+      const [[reactionsCount], [userReaction], viewerActivityGate] =
+        await Promise.all([
           db
             .select({ value: count() })
-            .from(commentReactions)
-            .where(eq(commentReactions.commentId, comment.id)),
+            .from(discussionReactions)
+            .where(eq(discussionReactions.discussionId, id)),
           db
             .select({ value: count() })
-            .from(commentReactions)
+            .from(discussionReactions)
             .where(
               and(
-                eq(commentReactions.commentId, comment.id),
-                eq(commentReactions.userId, user.id),
+                eq(discussionReactions.discussionId, id),
+                eq(discussionReactions.userId, user.id),
               ),
             ),
+          getActivityGateForUser(user.id),
         ]);
-        return {
-          ...comment,
-          reactionsCount: cReactions?.value ?? 0,
-          isReacted: (cUserReaction?.value ?? 0) > 0,
-        };
-      }),
-    );
 
-    return c.json({
-      success: true,
-      data: {
-        ...discussion,
-        reactionsCount: reactionsCount?.value ?? 0,
-        isReacted: (userReaction?.value ?? 0) > 0,
-        comments: commentsWithReactions,
-      },
-    });
-  })
+      const comments = await db
+        .select({
+          id: discussionComments.id,
+          content: discussionComments.content,
+          authorId: discussionComments.authorId,
+          authorName: profiles.fullName,
+          createdAt: discussionComments.createdAt,
+          updatedAt: discussionComments.updatedAt,
+        })
+        .from(discussionComments)
+        .leftJoin(profiles, eq(discussionComments.authorId, profiles.id))
+        .where(eq(discussionComments.discussionId, id))
+        .orderBy(discussionComments.createdAt);
+
+      const authorIds = [
+        ...new Set(comments.map((comment) => comment.authorId)),
+      ];
+      const helpfulAuthorIds = await getHelpfulAuthorIds(authorIds);
+
+      const commentsWithReactions = await Promise.all(
+        comments.map(async (comment) => {
+          const [[cReactions], [cUserReaction]] = await Promise.all([
+            db
+              .select({ value: count() })
+              .from(commentReactions)
+              .where(eq(commentReactions.commentId, comment.id)),
+            db
+              .select({ value: count() })
+              .from(commentReactions)
+              .where(
+                and(
+                  eq(commentReactions.commentId, comment.id),
+                  eq(commentReactions.userId, user.id),
+                ),
+              ),
+          ]);
+          return {
+            ...comment,
+            authorHasHelpfulMarker: helpfulAuthorIds.has(comment.authorId),
+            reactionsCount: cReactions?.value ?? 0,
+            isReacted: (cUserReaction?.value ?? 0) > 0,
+          };
+        }),
+      );
+
+      return c.json({
+        success: true,
+        viewerActivityGate,
+        data: {
+          ...discussion,
+          reactionsCount: reactionsCount?.value ?? 0,
+          isReacted: (userReaction?.value ?? 0) > 0,
+          comments: commentsWithReactions,
+        },
+      });
+    },
+  )
 
   // Create discussion
   .post(
@@ -220,6 +277,20 @@ const app = createRouter()
     async (c) => {
       const { title, content, category } = c.req.valid("json");
       const user = c.get("user");
+      const activityGate = await getActivityGateForUser(user.id);
+
+      if (!activityGate.permissions.canCreateDiscussions) {
+        return c.json(
+          {
+            success: false,
+            error:
+              "Post at least one discussion comment to unlock new discussions.",
+            code: DISCUSSION_CREATION_REQUIRES_COMMENT,
+            activityGate,
+          },
+          403,
+        );
+      }
 
       const [discussion] = await db
         .insert(discussions)
@@ -332,6 +403,19 @@ const app = createRouter()
       const { id } = c.req.valid("param");
       const user = c.get("user");
       const { content } = c.req.valid("json");
+      const activityGate = await getActivityGateForUser(user.id);
+
+      if (!activityGate.permissions.canCommentOnDiscussions) {
+        return c.json(
+          {
+            success: false,
+            error: "Complete your profile before commenting on discussions.",
+            code: PROFILE_INCOMPLETE_FOR_COMMENTS,
+            activityGate,
+          },
+          403,
+        );
+      }
 
       const [discussion] = await db
         .select({ id: discussions.id })
@@ -367,7 +451,17 @@ const app = createRouter()
         .where(eq(discussionComments.id, insertedId))
         .limit(1);
 
-      return c.json({ success: true, data: comment }, 201);
+      const authorHasHelpfulMarker = (await getHelpfulAuthorIds([user.id])).has(
+        user.id,
+      );
+
+      return c.json(
+        {
+          success: true,
+          data: { ...comment, authorHasHelpfulMarker },
+        },
+        201,
+      );
     },
   )
 
@@ -465,6 +559,10 @@ const app = createRouter()
     async (c) => {
       const { commentId } = c.req.valid("param");
       const user = c.get("user");
+      const comment = await getCommentAuthor(commentId);
+      const authorHadHelpfulMarker = (
+        await getHelpfulAuthorIds([comment.authorId])
+      ).has(comment.authorId);
 
       const [existing] = await db
         .select({ id: commentReactions.id })
@@ -481,11 +579,25 @@ const app = createRouter()
         throw new HTTPException(409, { message: "Already reacted" });
       }
 
-      await db
-        .insert(commentReactions)
-        .values({ commentId, userId: user.id });
+      await db.insert(commentReactions).values({ commentId, userId: user.id });
 
-      return c.json({ success: true, data: { reacted: true } });
+      const authorHasHelpfulMarker = (
+        await getHelpfulAuthorIds([comment.authorId])
+      ).has(comment.authorId);
+
+      return c.json({
+        success: true,
+        data: {
+          reacted: true,
+          helpfulMarker: {
+            authorId: comment.authorId,
+            authorName: comment.authorName,
+            authorHasHelpfulMarker,
+            achievementEarned:
+              !authorHadHelpfulMarker && authorHasHelpfulMarker,
+          },
+        },
+      });
     },
   )
 
@@ -496,6 +608,7 @@ const app = createRouter()
     async (c) => {
       const { commentId } = c.req.valid("param");
       const user = c.get("user");
+      const comment = await getCommentAuthor(commentId);
 
       const deleted = await db
         .delete(commentReactions)
@@ -511,7 +624,22 @@ const app = createRouter()
         throw new HTTPException(404, { message: "Reaction not found" });
       }
 
-      return c.json({ success: true, data: { reacted: false } });
+      const authorHasHelpfulMarker = (
+        await getHelpfulAuthorIds([comment.authorId])
+      ).has(comment.authorId);
+
+      return c.json({
+        success: true,
+        data: {
+          reacted: false,
+          helpfulMarker: {
+            authorId: comment.authorId,
+            authorName: comment.authorName,
+            authorHasHelpfulMarker,
+            achievementEarned: false,
+          },
+        },
+      });
     },
   );
 

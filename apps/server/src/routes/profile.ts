@@ -5,6 +5,7 @@ import { z } from "zod";
 import { db } from "@my-better-t-app/db";
 import { profiles, studentProfiles } from "@my-better-t-app/db/schema";
 import { supabaseAdmin } from "@my-better-t-app/db/supabase-admin";
+import { getActivityGateForUser } from "@/lib/activity-gate";
 import { createRouter } from "@/lib/app";
 import { auth } from "@/middleware/auth";
 import { validationHook } from "@/lib/zod-hook";
@@ -24,6 +25,10 @@ const updateProfileSchema = z.object({
 
 const MAX_AVATAR_SIZE = 2 * 1024 * 1024; // 2MB
 const ALLOWED_AVATAR_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const MAX_BACKGROUND_SIZE = 5 * 1024 * 1024; // 5MB
+const ALLOWED_BACKGROUND_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const PROFILE_BACKGROUND_REQUIRES_EVENT =
+  "PROFILE_BACKGROUND_REQUIRES_EVENT" as const;
 
 const app = createRouter()
   .use("/*", auth)
@@ -31,30 +36,35 @@ const app = createRouter()
   .get("/me", async (c) => {
     const user = c.get("user");
 
-    const [profile] = await db
-      .select({
-        id: profiles.id,
-        email: profiles.email,
-        fullName: profiles.fullName,
-        role: profiles.role,
-        status: profiles.status,
-        createdAt: profiles.createdAt,
-        faculty: studentProfiles.faculty,
-        group: studentProfiles.group,
-        avatarUrl: studentProfiles.avatarUrl,
-        bio: studentProfiles.bio,
-        interests: studentProfiles.interests,
-      })
-      .from(profiles)
-      .leftJoin(studentProfiles, eq(profiles.id, studentProfiles.id))
-      .where(eq(profiles.id, user.id))
-      .limit(1);
+    const [profile, activityGate] = await Promise.all([
+      db
+        .select({
+          id: profiles.id,
+          email: profiles.email,
+          fullName: profiles.fullName,
+          role: profiles.role,
+          status: profiles.status,
+          createdAt: profiles.createdAt,
+          faculty: studentProfiles.faculty,
+          group: studentProfiles.group,
+          avatarUrl: studentProfiles.avatarUrl,
+          backgroundUrl: studentProfiles.backgroundUrl,
+          bio: studentProfiles.bio,
+          interests: studentProfiles.interests,
+        })
+        .from(profiles)
+        .leftJoin(studentProfiles, eq(profiles.id, studentProfiles.id))
+        .where(eq(profiles.id, user.id))
+        .limit(1)
+        .then((rows) => rows[0]),
+      getActivityGateForUser(user.id),
+    ]);
 
     if (!profile) {
       throw new HTTPException(404, { message: "Profile not found" });
     }
 
-    return c.json({ success: true, data: profile });
+    return c.json({ success: true, data: { ...profile, activityGate } });
   })
 
   .get("/:id", zValidator("param", idParamSchema, validationHook), async (c) => {
@@ -68,6 +78,7 @@ const app = createRouter()
         faculty: studentProfiles.faculty,
         group: studentProfiles.group,
         avatarUrl: studentProfiles.avatarUrl,
+        backgroundUrl: studentProfiles.backgroundUrl,
         bio: studentProfiles.bio,
         interests: studentProfiles.interests,
       })
@@ -126,6 +137,66 @@ const app = createRouter()
     return c.json({ success: true, data: { avatarUrl } });
   })
 
+  .post("/upload-background", async (c) => {
+    const user = c.get("user");
+    const activityGate = await getActivityGateForUser(user.id);
+
+    if (!activityGate.personalization.permissions.canChangeBackground) {
+      return c.json(
+        {
+          success: false,
+          error:
+            "Register for at least one event to unlock profile background customization.",
+          code: PROFILE_BACKGROUND_REQUIRES_EVENT,
+          activityGate,
+        },
+        403,
+      );
+    }
+
+    const body = await c.req.parseBody();
+    const file = body["background"];
+
+    if (!file || typeof file === "string") {
+      throw new HTTPException(400, { message: "Background image is required" });
+    }
+
+    if (!ALLOWED_BACKGROUND_TYPES.includes(file.type)) {
+      throw new HTTPException(400, {
+        message: "Background must be JPEG, PNG, or WebP",
+      });
+    }
+
+    if (file.size > MAX_BACKGROUND_SIZE) {
+      throw new HTTPException(400, { message: "Background must be under 5MB" });
+    }
+
+    const ext = file.name.split(".").pop() ?? "jpg";
+    const path = `profile-backgrounds/${user.id}.${ext}`;
+    const buffer = await file.arrayBuffer();
+
+    const { error } = await supabaseAdmin.storage
+      .from("media")
+      .upload(path, buffer, { contentType: file.type, upsert: true });
+
+    if (error) {
+      throw new HTTPException(500, { message: "Failed to upload background" });
+    }
+
+    const { data: urlData } = supabaseAdmin.storage
+      .from("media")
+      .getPublicUrl(path);
+
+    const backgroundUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+
+    await db
+      .update(studentProfiles)
+      .set({ backgroundUrl })
+      .where(eq(studentProfiles.id, user.id));
+
+    return c.json({ success: true, data: { backgroundUrl, activityGate } });
+  })
+
   .patch("/me", zValidator("json", updateProfileSchema, validationHook), async (c) => {
     const user = c.get("user");
     const updates = c.req.valid("json");
@@ -151,26 +222,31 @@ const app = createRouter()
         .where(eq(studentProfiles.id, user.id));
     }
 
-    const [profile] = await db
-      .select({
-        id: profiles.id,
-        email: profiles.email,
-        fullName: profiles.fullName,
-        role: profiles.role,
-        status: profiles.status,
-        createdAt: profiles.createdAt,
-        faculty: studentProfiles.faculty,
-        group: studentProfiles.group,
-        avatarUrl: studentProfiles.avatarUrl,
-        bio: studentProfiles.bio,
-        interests: studentProfiles.interests,
-      })
-      .from(profiles)
-      .leftJoin(studentProfiles, eq(profiles.id, studentProfiles.id))
-      .where(eq(profiles.id, user.id))
-      .limit(1);
+    const [profile, activityGate] = await Promise.all([
+      db
+        .select({
+          id: profiles.id,
+          email: profiles.email,
+          fullName: profiles.fullName,
+          role: profiles.role,
+          status: profiles.status,
+          createdAt: profiles.createdAt,
+          faculty: studentProfiles.faculty,
+          group: studentProfiles.group,
+          avatarUrl: studentProfiles.avatarUrl,
+          backgroundUrl: studentProfiles.backgroundUrl,
+          bio: studentProfiles.bio,
+          interests: studentProfiles.interests,
+        })
+        .from(profiles)
+        .leftJoin(studentProfiles, eq(profiles.id, studentProfiles.id))
+        .where(eq(profiles.id, user.id))
+        .limit(1)
+        .then((rows) => rows[0]),
+      getActivityGateForUser(user.id),
+    ]);
 
-    return c.json({ success: true, data: profile });
+    return c.json({ success: true, data: profile ? { ...profile, activityGate } : profile });
   });
 
 export default app;

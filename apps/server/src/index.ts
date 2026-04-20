@@ -14,6 +14,7 @@ import deadlinesRoute from "@/routes/deadlines";
 import notesRoute from "@/routes/notes";
 import profile from "@/routes/profile";
 import settingsRoute from "@/routes/settings";
+export type { ActivityGate, RequiredProfileField } from "@/lib/activity-gate";
 
 const app = new Hono();
 

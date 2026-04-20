@@ -16,6 +16,7 @@ import { Route as AdminRouteRouteImport } from './routes/admin/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminLoginRouteImport } from './routes/admin/login'
 import { Route as AdminAuthenticatedRouteImport } from './routes/admin/_authenticated'
+import { Route as StudentSettingsRouteImport } from './routes/_student/settings'
 import { Route as StudentProfileRouteImport } from './routes/_student/profile'
 import { Route as StudentNotesDeadlinesRouteImport } from './routes/_student/notes-deadlines'
 import { Route as StudentHomeRouteImport } from './routes/_student/home'
@@ -29,7 +30,6 @@ import { Route as StudentProfileProfileIdRouteImport } from './routes/_student/p
 import { Route as StudentNewsNewsIdRouteImport } from './routes/_student/news.$newsId'
 import { Route as StudentEventsEventIdRouteImport } from './routes/_student/events.$eventId'
 import { Route as StudentDiscussionsDiscussionIdRouteImport } from './routes/_student/discussions_.$discussionId'
-import { Route as StudentSettingsRouteImport } from './routes/_student/settings'
 
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
@@ -63,6 +63,11 @@ const AdminLoginRoute = AdminLoginRouteImport.update({
 const AdminAuthenticatedRoute = AdminAuthenticatedRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => AdminRouteRoute,
+} as any)
+const StudentSettingsRoute = StudentSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => StudentRoute,
 } as any)
 const StudentProfileRoute = StudentProfileRouteImport.update({
   id: '/profile',
@@ -133,11 +138,6 @@ const StudentDiscussionsDiscussionIdRoute =
     path: '/discussions/$discussionId',
     getParentRoute: () => StudentRoute,
   } as any)
-const StudentSettingsRoute = StudentSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => StudentRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -330,6 +330,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAuthenticatedRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/_student/settings': {
+      id: '/_student/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof StudentSettingsRouteImport
+      parentRoute: typeof StudentRoute
+    }
     '/_student/profile': {
       id: '/_student/profile'
       path: '/profile'
@@ -419,13 +426,6 @@ declare module '@tanstack/react-router' {
       path: '/discussions/$discussionId'
       fullPath: '/discussions/$discussionId'
       preLoaderRoute: typeof StudentDiscussionsDiscussionIdRouteImport
-      parentRoute: typeof StudentRoute
-    }
-    '/_student/settings': {
-      id: '/_student/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof StudentSettingsRouteImport
       parentRoute: typeof StudentRoute
     }
   }
