@@ -191,6 +191,53 @@ describe("events routes", () => {
     });
   });
 
+  it("returns conflict when the user is already registered", async () => {
+    selectResults.push(
+      [
+        {
+          id: eventId,
+          title: "Hackathon",
+          eventDate: new Date("2030-06-01T12:00:00.000Z"),
+          location: "Main Hall",
+          maxParticipants: 50,
+        },
+      ],
+      [{ id: "registration-1" }],
+    );
+
+    const response = await app.request(`http://localhost/${eventId}/register`, {
+      method: "POST",
+    });
+
+    expect(response.status).toBe(409);
+    await expect(response.text()).resolves.toContain(
+      "Already registered for this event",
+    );
+  });
+
+  it("returns conflict when the event is already full", async () => {
+    selectResults.push(
+      [
+        {
+          id: eventId,
+          title: "Hackathon",
+          eventDate: new Date("2030-06-01T12:00:00.000Z"),
+          location: "Main Hall",
+          maxParticipants: 3,
+        },
+      ],
+      [],
+      [{ value: 3 }],
+    );
+
+    const response = await app.request(`http://localhost/${eventId}/register`, {
+      method: "POST",
+    });
+
+    expect(response.status).toBe(409);
+    await expect(response.text()).resolves.toContain("Event is full");
+  });
+
   it("cancels reminder ids when a registration is removed", async () => {
     deleteResults.push([
       {
@@ -208,5 +255,16 @@ describe("events routes", () => {
       reminder24hEmailId: "event-24",
       reminder1hEmailId: "event-1",
     });
+  });
+
+  it("returns not found when unregistering a missing registration", async () => {
+    deleteResults.push([]);
+
+    const response = await app.request(`http://localhost/${eventId}/register`, {
+      method: "DELETE",
+    });
+
+    expect(response.status).toBe(404);
+    await expect(response.text()).resolves.toContain("Registration not found");
   });
 });

@@ -187,6 +187,23 @@ describe("deadlines routes", () => {
     );
   });
 
+  it("returns 500 when deadline creation does not return a row", async () => {
+    selectResults.push([{ email: "student@example.com" }], [{ notify: false }]);
+    insertResults.push([]);
+
+    const response = await app.request("http://localhost/", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        title: "Missing row",
+        dueAt: "2030-05-02T12:00:00.000Z",
+      }),
+    });
+
+    expect(response.status).toBe(500);
+    await expect(response.text()).resolves.toContain("Failed to create deadline");
+  });
+
   it("re-syncs reminders when a deadline changes", async () => {
     selectResults.push(
       [
@@ -236,6 +253,25 @@ describe("deadlines routes", () => {
     );
   });
 
+  it("returns 404 when updating a missing deadline", async () => {
+    selectResults.push([]);
+
+    const response = await app.request(
+      "http://localhost/11111111-1111-4111-8111-111111111111",
+      {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          title: "No deadline",
+          dueAt: "2030-05-03T12:00:00.000Z",
+        }),
+      },
+    );
+
+    expect(response.status).toBe(404);
+    await expect(response.text()).resolves.toContain("Deadline not found");
+  });
+
   it("cancels reminders when a deadline is deleted", async () => {
     deleteResults.push([
       {
@@ -255,5 +291,19 @@ describe("deadlines routes", () => {
     expect(response.status).toBe(200);
     expect(cancelScheduledEmailMock).toHaveBeenCalledTimes(2);
     await expect(response.json()).resolves.toEqual({ success: true });
+  });
+
+  it("returns 404 when deleting a missing deadline", async () => {
+    deleteResults.push([]);
+
+    const response = await app.request(
+      "http://localhost/11111111-1111-4111-8111-111111111111",
+      {
+        method: "DELETE",
+      },
+    );
+
+    expect(response.status).toBe(404);
+    await expect(response.text()).resolves.toContain("Deadline not found");
   });
 });

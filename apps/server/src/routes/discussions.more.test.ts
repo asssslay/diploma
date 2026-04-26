@@ -291,4 +291,92 @@ describe("discussions routes additional coverage", () => {
       },
     });
   });
+
+  it("forbids editing another user's comment", async () => {
+    selectQueue.push([{ id: commentId, authorId: "other-user" }]);
+
+    const response = await app.request(
+      `http://localhost/${discussionId}/comments/${commentId}`,
+      {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ content: "Updated comment" }),
+      },
+    );
+
+    expect(response.status).toBe(403);
+    await expect(response.text()).resolves.toContain(
+      "You can only edit your own comments",
+    );
+  });
+
+  it("returns not found when deleting a missing comment", async () => {
+    selectQueue.push([]);
+
+    const response = await app.request(
+      `http://localhost/${discussionId}/comments/${commentId}`,
+      {
+        method: "DELETE",
+      },
+    );
+
+    expect(response.status).toBe(404);
+    await expect(response.text()).resolves.toContain("Comment not found");
+  });
+
+  it("returns not found when commenting on a missing discussion", async () => {
+    selectQueue.push([]);
+
+    const response = await app.request(`http://localhost/${discussionId}/comments`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ content: "Is this still open?" }),
+    });
+
+    expect(response.status).toBe(404);
+    await expect(response.text()).resolves.toContain("Discussion not found");
+  });
+
+  it("returns 500 when a comment insert does not produce an id", async () => {
+    selectQueue.push([{ id: discussionId }]);
+    insertQueue.push([{}]);
+
+    const response = await app.request(`http://localhost/${discussionId}/comments`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ content: "First!" }),
+    });
+
+    expect(response.status).toBe(500);
+    await expect(response.text()).resolves.toContain("Failed to create comment");
+  });
+
+  it("removes a comment reaction and returns the helpful marker state", async () => {
+    selectQueue.push(
+      [{ authorId: "author-2", authorName: "Bob" }],
+      [{ authorId: "author-2" }],
+    );
+    deleteQueue.push([{}]);
+
+    const response = await app.request(
+      `http://localhost/${discussionId}/comments/${commentId}/react`,
+      {
+        method: "DELETE",
+      },
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      success: true,
+      data: {
+        reacted: false,
+        helpfulMarker: {
+          authorId: "author-2",
+          authorName: "Bob",
+          authorHasHelpfulMarker: true,
+          achievementEarned: false,
+        },
+      },
+    });
+  });
 });
