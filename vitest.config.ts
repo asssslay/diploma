@@ -5,6 +5,20 @@ const rootDir = path.resolve(__dirname);
 
 export default defineConfig({
   test: {
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "html", "json-summary"],
+      reportsDirectory: path.resolve(rootDir, "coverage"),
+      include: ["apps/*/src/**/*.{ts,tsx}", "packages/*/src/**/*.ts"],
+      exclude: [
+        "**/*.test.{ts,tsx}",
+        "**/test/**",
+        "**/dist/**",
+        "**/coverage/**",
+        "**/*.config.{ts,js,mjs,cjs}",
+        "apps/web/src/routeTree.gen.ts",
+      ],
+    },
     projects: [
       {
         resolve: {
@@ -17,11 +31,6 @@ export default defineConfig({
           root: path.resolve(rootDir, "apps/server"),
           environment: "node",
           include: ["src/**/*.test.ts"],
-          coverage: {
-            provider: "v8",
-            reporter: ["text", "html"],
-            reportsDirectory: path.resolve(rootDir, "coverage/server"),
-          },
         },
       },
       {
@@ -36,11 +45,6 @@ export default defineConfig({
           environment: "jsdom",
           include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
           setupFiles: [path.resolve(rootDir, "apps/web/src/test/setup.ts")],
-          coverage: {
-            provider: "v8",
-            reporter: ["text", "html"],
-            reportsDirectory: path.resolve(rootDir, "coverage/web"),
-          },
         },
       },
       {
@@ -49,11 +53,6 @@ export default defineConfig({
           root: path.resolve(rootDir, "packages/env"),
           environment: "node",
           include: ["src/**/*.test.ts"],
-          coverage: {
-            provider: "v8",
-            reporter: ["text", "html"],
-            reportsDirectory: path.resolve(rootDir, "coverage/env"),
-          },
         },
       },
     ],

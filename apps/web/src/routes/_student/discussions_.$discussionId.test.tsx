@@ -157,6 +157,32 @@ describe("discussion detail route", () => {
     });
   });
 
+  it("removes a discussion reaction when already reacted", async () => {
+    detailMock.mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({
+        ...baseDetail,
+        data: {
+          ...baseDetail.data,
+          reactionsCount: 3,
+          isReacted: true,
+        },
+      }),
+    });
+    reactDiscussionDeleteMock.mockResolvedValue({ ok: true });
+
+    const { Route } = await import("./discussions_.$discussionId");
+    render(<Route.component />);
+
+    const reactButton = await screen.findByRole("button", { name: /3/ });
+    await userEvent.click(reactButton);
+
+    expect(await screen.findByRole("button", { name: /2/ })).toBeInTheDocument();
+    expect(reactDiscussionDeleteMock).toHaveBeenCalledWith({
+      param: { id: "discussion-1" },
+    });
+  });
+
   it("adds a comment and appends it to the discussion", async () => {
     createCommentMock.mockResolvedValue({
       ok: true,
@@ -243,5 +269,155 @@ describe("discussion detail route", () => {
         description: "One of your comments passed 10 positive reactions.",
       }),
     );
+  });
+
+  it("removes a comment reaction when the viewer already reacted", async () => {
+    detailMock.mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({
+        ...baseDetail,
+        data: {
+          ...baseDetail.data,
+          comments: [
+            {
+              ...baseDetail.data.comments[0],
+              reactionsCount: 11,
+              isReacted: true,
+              authorHasHelpfulMarker: true,
+            },
+          ],
+        },
+      }),
+    });
+    reactCommentDeleteMock.mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({
+        success: true,
+        data: {
+          reacted: false,
+        },
+      }),
+    });
+
+    const { Route } = await import("./discussions_.$discussionId");
+    render(<Route.component />);
+
+    const buttons = await screen.findAllByRole("button", { name: /11/ });
+    await userEvent.click(buttons[0]);
+
+    expect(await screen.findByRole("button", { name: /10/ })).toBeInTheDocument();
+    expect(reactCommentDeleteMock).toHaveBeenCalledWith({
+      param: { id: "discussion-1", commentId: "comment-1" },
+    });
+  });
+
+  it("edits the discussion from the owner controls", async () => {
+    patchDiscussionMock.mockResolvedValue({ ok: true });
+
+    const { Route } = await import("./discussions_.$discussionId");
+    const { container } = render(<Route.component />);
+
+    await screen.findByRole("heading", { name: "Welcome thread" });
+    const unnamedButtons = Array.from(container.querySelectorAll("button")).filter(
+      (button) => button.textContent?.trim() === "",
+    );
+
+    await userEvent.click(unnamedButtons[0] as HTMLButtonElement);
+    const editFields = screen.getAllByRole("textbox");
+    const titleInput = editFields.find(
+      (field) => (field as HTMLInputElement).value === "Welcome thread",
+    ) as HTMLInputElement;
+    const contentInput = editFields.find(
+      (field) => (field as HTMLTextAreaElement).value === "Hello everyone",
+    ) as HTMLTextAreaElement;
+
+    await userEvent.clear(titleInput);
+    await userEvent.type(titleInput, "Updated thread");
+    await userEvent.click(screen.getByRole("button", { name: "academic" }));
+    await userEvent.clear(contentInput);
+    await userEvent.type(contentInput, "Updated body");
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => {
+      expect(patchDiscussionMock).toHaveBeenCalledWith({
+        param: { id: "discussion-1" },
+        json: {
+          title: "Updated thread",
+          content: "Updated body",
+          category: "academic",
+        },
+      });
+    });
+    expect(await screen.findByText("Updated thread")).toBeInTheDocument();
+    expect(toastSuccessMock).toHaveBeenCalledWith("Discussion updated");
+  });
+
+  it("edits an existing comment", async () => {
+    patchCommentMock.mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({
+        data: {
+          ...baseDetail.data.comments[0],
+          content: "Edited comment",
+          updatedAt: "2030-06-01T14:00:00.000Z",
+        },
+      }),
+    });
+
+    const { Route } = await import("./discussions_.$discussionId");
+    const { container } = render(<Route.component />);
+
+    await screen.findByText("Nice post");
+    const unnamedButtons = Array.from(container.querySelectorAll("button")).filter(
+      (button) => button.textContent?.trim() === "",
+    );
+
+    await userEvent.click(unnamedButtons[1] as HTMLButtonElement);
+    const textboxes = screen.getAllByRole("textbox");
+    const dialogTextbox = textboxes[textboxes.length - 1] as HTMLTextAreaElement;
+    await userEvent.clear(dialogTextbox);
+    await userEvent.type(dialogTextbox, "Edited comment");
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => {
+      expect(patchCommentMock).toHaveBeenCalledWith({
+        param: { id: "discussion-1", commentId: "comment-1" },
+        json: { content: "Edited comment" },
+      });
+    });
+    expect(await screen.findByText("Edited comment")).toBeInTheDocument();
+    expect(toastSuccessMock).toHaveBeenCalledWith("Comment updated");
+  });
+
+  it("refetches the discussion when deleting a comment fails", async () => {
+    deleteCommentMock.mockResolvedValue({ ok: false });
+    detailMock
+      .mockResolvedValueOnce({
+        ok: true,
+        json: vi.fn().mockResolvedValue(baseDetail),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: vi.fn().mockResolvedValue(baseDetail),
+      });
+
+    const { Route } = await import("./discussions_.$discussionId");
+    const { container } = render(<Route.component />);
+
+    await screen.findByText("Nice post");
+    const unnamedButtons = Array.from(container.querySelectorAll("button")).filter(
+      (button) => button.textContent?.trim() === "",
+    );
+
+    await userEvent.click(unnamedButtons[2] as HTMLButtonElement);
+
+    await waitFor(() => {
+      expect(deleteCommentMock).toHaveBeenCalledWith({
+        param: { id: "discussion-1", commentId: "comment-1" },
+      });
+      expect(detailMock).toHaveBeenCalledTimes(2);
+    });
+    expect(await screen.findByText("Nice post")).toBeInTheDocument();
+    expect(toastErrorMock).toHaveBeenCalledWith("Failed to delete comment");
   });
 });

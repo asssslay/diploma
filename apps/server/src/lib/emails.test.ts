@@ -96,6 +96,69 @@ describe("emails helpers", () => {
     );
   });
 
+  it("returns null when Resend reports a scheduling error", async () => {
+    sendMock.mockResolvedValue({
+      data: null,
+      error: { message: "nope" },
+    });
+
+    await expect(
+      scheduleEventReminder(
+        "user@example.com",
+        "Hackathon",
+        new Date("2026-04-28T12:00:00.000Z"),
+        "Main Hall",
+        24,
+        "op-4",
+      ),
+    ).resolves.toBeNull();
+  });
+
+  it("returns null when scheduling throws unexpectedly", async () => {
+    sendMock.mockRejectedValue(new Error("boom"));
+
+    await expect(
+      scheduleDeadlineReminder(
+        "user@example.com",
+        "Algorithms assignment",
+        new Date("2026-04-28T12:00:00.000Z"),
+        1,
+        "op-5",
+      ),
+    ).resolves.toBeNull();
+  });
+
+  it("returns the scheduled event email id when the reminder is valid", async () => {
+    sendMock.mockResolvedValue({
+      data: { id: "event-email-123" },
+      error: null,
+    });
+
+    await expect(
+      scheduleEventReminder(
+        "user@example.com",
+        "Hackathon",
+        new Date("2026-04-28T12:00:00.000Z"),
+        "Main Hall",
+        1,
+        "op-6",
+      ),
+    ).resolves.toBe("event-email-123");
+
+    expect(sendMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        scheduledAt: "2026-04-28T11:00:00.000Z",
+        tags: [
+          { name: "type", value: "event_reminder" },
+          { name: "hours_before", value: "1" },
+        ],
+      }),
+      {
+        idempotencyKey: "event-reminder-1h/op-6",
+      },
+    );
+  });
+
   it("does not throw when sending a regular email fails", async () => {
     sendMock.mockResolvedValue({
       data: null,
@@ -114,5 +177,20 @@ describe("emails helpers", () => {
     });
 
     await expect(cancelScheduledEmail("email-999")).resolves.toBe(false);
+  });
+
+  it("returns true when cancellation succeeds", async () => {
+    cancelMock.mockResolvedValue({
+      data: { id: "email-123" },
+      error: null,
+    });
+
+    await expect(cancelScheduledEmail("email-123")).resolves.toBe(true);
+  });
+
+  it("returns false when cancellation throws unexpectedly", async () => {
+    cancelMock.mockRejectedValue(new Error("boom"));
+
+    await expect(cancelScheduledEmail("email-123")).resolves.toBe(false);
   });
 });

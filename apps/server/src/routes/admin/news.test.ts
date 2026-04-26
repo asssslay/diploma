@@ -159,6 +159,19 @@ describe("admin news routes", () => {
     });
   });
 
+  it("rejects invalid upload types", async () => {
+    const formData = new FormData();
+    formData.append("image", new File(["img"], "bad.txt", { type: "text/plain" }));
+
+    const response = await app.request("http://localhost/upload-image", {
+      method: "POST",
+      body: formData,
+    });
+
+    expect(response.status).toBe(400);
+    await expect(response.text()).resolves.toContain("Image must be JPEG, PNG, or WebP");
+  });
+
   it("returns 500 when image upload fails", async () => {
     uploadMock.mockResolvedValue({ error: { message: "nope" } });
     const formData = new FormData();
@@ -171,6 +184,49 @@ describe("admin news routes", () => {
 
     expect(response.status).toBe(500);
     await expect(response.text()).resolves.toContain("Failed to upload image");
+  });
+
+  it("returns the news post detail", async () => {
+    selectResults.push([
+      {
+        id: postId,
+        title: "Campus update",
+        content: "Semester starts soon",
+        imageUrl: null,
+        authorName: "Admin",
+        publishedAt: "2030-05-01T12:00:00.000Z",
+        viewCount: 5,
+        createdAt: "2030-05-01T12:00:00.000Z",
+        updatedAt: "2030-05-01T12:00:00.000Z",
+      },
+    ]);
+
+    const response = await app.request(`http://localhost/${postId}`);
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      success: true,
+      data: { id: postId, title: "Campus update" },
+    });
+  });
+
+  it("creates a news post with the authenticated admin as author", async () => {
+    insertResults.push([{ id: postId, title: "Campus update" }]);
+
+    const response = await app.request("http://localhost/", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        title: "Campus update",
+        content: "Semester starts soon",
+      }),
+    });
+
+    expect(response.status).toBe(201);
+    await expect(response.json()).resolves.toMatchObject({
+      success: true,
+      data: { id: postId, title: "Campus update" },
+    });
   });
 
   it("patches a post after confirming it exists", async () => {
@@ -187,6 +243,33 @@ describe("admin news routes", () => {
     await expect(response.json()).resolves.toMatchObject({
       success: true,
       data: { id: postId, imageUrl: null },
+    });
+  });
+
+  it("returns 404 when patching a missing post", async () => {
+    selectResults.push([]);
+
+    const response = await app.request(`http://localhost/${postId}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ imageUrl: null }),
+    });
+
+    expect(response.status).toBe(404);
+    await expect(response.text()).resolves.toContain("News post not found");
+  });
+
+  it("deletes an existing post", async () => {
+    deleteResults.push([{ id: postId }]);
+
+    const response = await app.request(`http://localhost/${postId}`, {
+      method: "DELETE",
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      success: true,
+      data: { id: postId },
     });
   });
 

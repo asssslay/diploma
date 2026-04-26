@@ -272,4 +272,123 @@ describe("admin events route", () => {
     });
     expect(toastSuccessMock).toHaveBeenCalledWith("Event deleted");
   });
+
+  it("shows an error toast when the events list fails to load", async () => {
+    listEventsMock.mockResolvedValue({
+      ok: false,
+      json: vi.fn(),
+    });
+
+    const { Route } = await import("./events");
+    render(<Route.component />);
+
+    expect(
+      await screen.findByText("No events yet. Create your first one."),
+    ).toBeInTheDocument();
+    expect(toastErrorMock).toHaveBeenCalledWith("Failed to load events");
+  });
+
+  it("shows an error toast when loading event details fails", async () => {
+    getEventDetailMock.mockResolvedValue({
+      ok: false,
+      json: vi.fn(),
+    });
+
+    const { Route } = await import("./events");
+    render(<Route.component />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Registrations" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Hackathon" }));
+
+    await waitFor(() => {
+      expect(getEventDetailMock).toHaveBeenCalledWith({
+        param: { id: "event-1" },
+      });
+    });
+    expect(toastErrorMock).toHaveBeenCalledWith("Failed to load event details");
+  });
+
+  it("shows an error toast when image upload fails during creation", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+      }),
+    );
+
+    const { Route } = await import("./events");
+    render(<Route.component />);
+
+    await userEvent.click(await screen.findByRole("button", { name: /Create Event/i }));
+    await userEvent.type(screen.getByLabelText("Title"), "New event");
+    await userEvent.type(screen.getByLabelText("Description"), "Event details");
+    await userEvent.type(screen.getByLabelText("Date & Time"), "2030-06-02T12:00");
+    await userEvent.type(screen.getByLabelText("Max Participants"), "30");
+    await userEvent.type(screen.getByLabelText("Location"), "Lab 1");
+    fireEvent.change(screen.getByLabelText("Image (optional)"), {
+      target: {
+        files: [new File(["img"], "event.png", { type: "image/png" })],
+      },
+    });
+    await userEvent.click(screen.getByRole("button", { name: "Create" }));
+
+    await waitFor(() => {
+      expect(toastErrorMock).toHaveBeenCalledWith("Failed to upload image");
+    });
+    expect(createEventMock).not.toHaveBeenCalled();
+  });
+
+  it("shows an error toast when delete fails", async () => {
+    deleteEventMock.mockResolvedValue({ ok: false });
+
+    const { Route } = await import("./events");
+    render(<Route.component />);
+
+    await userEvent.click((await screen.findAllByTitle("Delete"))[0]);
+    await userEvent.click(await screen.findByRole("button", { name: "Confirm" }));
+
+    await waitFor(() => {
+      expect(deleteEventMock).toHaveBeenCalledWith({
+        param: { id: "event-1" },
+      });
+    });
+    expect(toastErrorMock).toHaveBeenCalledWith("Failed to delete event");
+  });
+
+  it("fetches the next page when pagination controls are used", async () => {
+    listEventsMock
+      .mockResolvedValueOnce({
+        ok: true,
+        json: vi.fn().mockResolvedValue({
+          ...eventList,
+          total: 11,
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: vi.fn().mockResolvedValue({
+          success: true,
+          data: [
+            {
+              ...eventList.data[0],
+              id: "event-2",
+              title: "Workshop",
+            },
+          ],
+          total: 11,
+        }),
+      });
+
+    const { Route } = await import("./events");
+    render(<Route.component />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Next" }));
+
+    await waitFor(() => {
+      expect(listEventsMock).toHaveBeenNthCalledWith(2, {
+        query: { page: "2", pageSize: "10" },
+      });
+    });
+    expect(await screen.findByText("Workshop")).toBeInTheDocument();
+  });
 });

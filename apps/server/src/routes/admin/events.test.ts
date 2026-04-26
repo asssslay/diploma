@@ -181,6 +181,38 @@ describe("admin events routes", () => {
     await expect(response.text()).resolves.toContain("Image must be JPEG, PNG, or WebP");
   });
 
+  it("rejects images larger than 5MB", async () => {
+    const file = new File(
+      [new Uint8Array(6 * 1024 * 1024)],
+      "big.png",
+      { type: "image/png" },
+    );
+    const formData = new FormData();
+    formData.append("image", file);
+
+    const response = await app.request("http://localhost/upload-image", {
+      method: "POST",
+      body: formData,
+    });
+
+    expect(response.status).toBe(400);
+    await expect(response.text()).resolves.toContain("Image must be under 5MB");
+  });
+
+  it("returns 500 when event image upload fails", async () => {
+    uploadMock.mockResolvedValue({ error: { message: "upload failed" } });
+    const formData = new FormData();
+    formData.append("image", new File(["img"], "event.png", { type: "image/png" }));
+
+    const response = await app.request("http://localhost/upload-image", {
+      method: "POST",
+      body: formData,
+    });
+
+    expect(response.status).toBe(500);
+    await expect(response.text()).resolves.toContain("Failed to upload image");
+  });
+
   it("creates an event with the authenticated admin as author", async () => {
     insertResults.push([{ id: eventId, title: "New Event" }]);
 
@@ -233,6 +265,44 @@ describe("admin events routes", () => {
     );
   });
 
+  it("does not reschedule reminders when timing fields stay unchanged", async () => {
+    selectResults.push([
+      {
+        id: eventId,
+        title: "Old title",
+        eventDate: new Date("2030-06-01T12:00:00.000Z"),
+        location: "Old Hall",
+      },
+    ]);
+    updateResults.push([{ id: eventId, description: "Updated description" }]);
+
+    const response = await app.request(`http://localhost/${eventId}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        description: "Updated description",
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(rescheduleAllEventRemindersMock).not.toHaveBeenCalled();
+  });
+
+  it("returns 404 when patching a missing event", async () => {
+    selectResults.push([]);
+
+    const response = await app.request(`http://localhost/${eventId}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        title: "Missing event",
+      }),
+    });
+
+    expect(response.status).toBe(404);
+    await expect(response.text()).resolves.toContain("Event not found");
+  });
+
   it("deletes an event after cancelling all reminders", async () => {
     selectResults.push([{ id: eventId }]);
     deleteResults.push([]);
@@ -247,5 +317,17 @@ describe("admin events routes", () => {
       success: true,
       data: { id: eventId },
     });
+  });
+
+  it("returns 404 when deleting a missing event", async () => {
+    selectResults.push([]);
+
+    const response = await app.request(`http://localhost/${eventId}`, {
+      method: "DELETE",
+    });
+
+    expect(response.status).toBe(404);
+    expect(cancelAllEventRemindersMock).not.toHaveBeenCalled();
+    await expect(response.text()).resolves.toContain("Event not found");
   });
 });

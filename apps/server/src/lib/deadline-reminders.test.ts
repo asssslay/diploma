@@ -69,6 +69,9 @@ describe("deadline reminder helpers", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     updateWhereMock.mockResolvedValue(undefined);
+    vi.stubGlobal("crypto", {
+      randomUUID: vi.fn(() => "operation-1"),
+    });
   });
 
   it("cancels all existing reminder ids and clears them in storage", async () => {
@@ -99,5 +102,83 @@ describe("deadline reminder helpers", () => {
 
     expect(scheduleDeadlineReminderMock).not.toHaveBeenCalled();
     expect(updateMock).not.toHaveBeenCalled();
+  });
+
+  it("clears stored ids even when there are no reminders to cancel", async () => {
+    selectWhereResolveMock.mockResolvedValueOnce([
+      {
+        id: "deadline-1",
+        reminder24hEmailId: null,
+        reminder1hEmailId: null,
+      },
+    ]);
+
+    await cancelAllUserDeadlineReminders("user-1");
+
+    expect(runThrottledMock).not.toHaveBeenCalled();
+    expect(updateSetMock).toHaveBeenCalledWith({
+      reminder24hEmailId: null,
+      reminder1hEmailId: null,
+    });
+  });
+
+  it("returns early when there are no upcoming deadlines to reschedule", async () => {
+    selectLimitMock.mockResolvedValueOnce([{ email: "user@example.com" }]);
+    selectWhereResolveMock.mockResolvedValueOnce([]);
+
+    await scheduleAllUserDeadlineReminders("user-1");
+
+    expect(scheduleDeadlineReminderMock).not.toHaveBeenCalled();
+  });
+
+  it("schedules reminder ids for upcoming deadlines", async () => {
+    selectLimitMock.mockResolvedValueOnce([{ email: "user@example.com" }]);
+    selectWhereResolveMock.mockResolvedValueOnce([
+      {
+        id: "deadline-1",
+        title: "Algorithms assignment",
+        dueAt: new Date("2030-06-01T12:00:00.000Z"),
+      },
+    ]);
+    scheduleDeadlineReminderMock
+      .mockResolvedValueOnce("24h-id")
+      .mockResolvedValueOnce("1h-id");
+
+    await scheduleAllUserDeadlineReminders("user-1");
+
+    expect(scheduleDeadlineReminderMock).toHaveBeenCalledTimes(2);
+    expect(updateSetMock).toHaveBeenCalledWith({
+      reminder24hEmailId: "24h-id",
+      reminder1hEmailId: "1h-id",
+    });
+  });
+
+  it("continues scheduling later deadlines when one schedule fails", async () => {
+    selectLimitMock.mockResolvedValueOnce([{ email: "user@example.com" }]);
+    selectWhereResolveMock.mockResolvedValueOnce([
+      {
+        id: "deadline-1",
+        title: "Algorithms assignment",
+        dueAt: new Date("2030-06-01T12:00:00.000Z"),
+      },
+      {
+        id: "deadline-2",
+        title: "Databases project",
+        dueAt: new Date("2030-06-02T12:00:00.000Z"),
+      },
+    ]);
+    scheduleDeadlineReminderMock
+      .mockRejectedValueOnce(new Error("boom"))
+      .mockResolvedValueOnce("ignored")
+      .mockResolvedValueOnce("24h-id")
+      .mockResolvedValueOnce("1h-id");
+
+    await scheduleAllUserDeadlineReminders("user-1");
+
+    expect(runThrottledMock).toHaveBeenCalledTimes(1);
+    expect(updateSetMock).toHaveBeenCalledWith({
+      reminder24hEmailId: "24h-id",
+      reminder1hEmailId: "1h-id",
+    });
   });
 });

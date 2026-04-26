@@ -196,4 +196,100 @@ describe("admin news route", () => {
     });
     expect(toastSuccessMock).toHaveBeenCalledWith("News post deleted");
   });
+
+  it("shows an error toast when the news list fails to load", async () => {
+    listNewsMock.mockResolvedValue({
+      ok: false,
+      json: vi.fn(),
+    });
+
+    const { Route } = await import("./news");
+    render(<Route.component />);
+
+    expect(
+      await screen.findByText("No news posts yet. Create your first one."),
+    ).toBeInTheDocument();
+    expect(toastErrorMock).toHaveBeenCalledWith("Failed to load news");
+  });
+
+  it("shows an error toast when image upload fails during creation", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+      }),
+    );
+
+    const { Route } = await import("./news");
+    render(<Route.component />);
+
+    await userEvent.click(await screen.findByRole("button", { name: /Create News/i }));
+    await userEvent.type(screen.getByLabelText("Title"), "New article");
+    await userEvent.type(screen.getByLabelText("Content"), "Article body");
+    fireEvent.change(screen.getByLabelText("Image (optional)"), {
+      target: {
+        files: [new File(["img"], "news.png", { type: "image/png" })],
+      },
+    });
+    await userEvent.click(screen.getByRole("button", { name: "Create" }));
+
+    await waitFor(() => {
+      expect(toastErrorMock).toHaveBeenCalledWith("Failed to upload image");
+    });
+    expect(createNewsMock).not.toHaveBeenCalled();
+  });
+
+  it("shows an error toast when deleting a news post fails", async () => {
+    deleteNewsMock.mockResolvedValue({ ok: false });
+
+    const { Route } = await import("./news");
+    render(<Route.component />);
+
+    await userEvent.click((await screen.findAllByTitle("Delete"))[0]);
+    await userEvent.click(await screen.findByRole("button", { name: "Confirm" }));
+
+    await waitFor(() => {
+      expect(deleteNewsMock).toHaveBeenCalledWith({
+        param: { id: "post-1" },
+      });
+    });
+    expect(toastErrorMock).toHaveBeenCalledWith("Failed to delete news post");
+  });
+
+  it("fetches the next page when pagination controls are used", async () => {
+    listNewsMock
+      .mockResolvedValueOnce({
+        ok: true,
+        json: vi.fn().mockResolvedValue({
+          ...newsList,
+          total: 11,
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: vi.fn().mockResolvedValue({
+          success: true,
+          data: [
+            {
+              ...newsList.data[0],
+              id: "post-2",
+              title: "Second page article",
+            },
+          ],
+          total: 11,
+        }),
+      });
+
+    const { Route } = await import("./news");
+    render(<Route.component />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Next" }));
+
+    await waitFor(() => {
+      expect(listNewsMock).toHaveBeenNthCalledWith(2, {
+        query: { page: "2", pageSize: "10" },
+      });
+    });
+    expect(await screen.findByText("Second page article")).toBeInTheDocument();
+  });
 });

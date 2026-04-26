@@ -20,9 +20,13 @@ const {
     then: (resolve: (value: unknown) => unknown) =>
       Promise.resolve(selectWhereResolveMock()).then(resolve),
   }));
+  const joinedQuery = {
+    where: selectWhereMock,
+    leftJoin: () => ({ where: selectWhereMock }),
+  };
   const selectFromMock = vi.fn(() => ({
     where: selectWhereMock,
-    innerJoin: () => ({ leftJoin: () => ({ where: selectWhereMock }) }),
+    innerJoin: () => joinedQuery,
   }));
   const selectMock = vi.fn(() => ({ from: selectFromMock }));
 
@@ -67,6 +71,8 @@ const {
   cancelAllEventReminders,
   cancelAllUserEventReminders,
   cancelBothEventReminders,
+  rescheduleAllEventReminders,
+  scheduleBothEventReminders,
   scheduleAllUserEventReminders,
 } = await import("./event-reminders");
 
@@ -74,6 +80,9 @@ describe("event reminder helpers", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     updateWhereMock.mockResolvedValue(undefined);
+    vi.stubGlobal("crypto", {
+      randomUUID: vi.fn(() => "operation-1"),
+    });
   });
 
   it("cancels both reminder ids when present", async () => {
@@ -95,6 +104,20 @@ describe("event reminder helpers", () => {
 
     await expect(cancelAllEventReminders("event-1")).resolves.toBe(0);
     expect(runThrottledMock).not.toHaveBeenCalled();
+  });
+
+  it("cancels every stored reminder id for an event", async () => {
+    selectWhereResolveMock.mockResolvedValueOnce([
+      { reminder24hEmailId: "24h-id", reminder1hEmailId: null },
+      { reminder24hEmailId: null, reminder1hEmailId: "1h-id" },
+    ]);
+    cancelScheduledEmailMock.mockResolvedValue(true);
+
+    await expect(cancelAllEventReminders("event-1")).resolves.toBe(2);
+
+    expect(runThrottledMock).toHaveBeenCalledTimes(1);
+    expect(cancelScheduledEmailMock).toHaveBeenCalledWith("24h-id");
+    expect(cancelScheduledEmailMock).toHaveBeenCalledWith("1h-id");
   });
 
   it("cancels all user reminders and clears stored ids", async () => {
@@ -123,5 +146,142 @@ describe("event reminder helpers", () => {
 
     expect(scheduleEventReminderMock).not.toHaveBeenCalled();
     expect(updateMock).not.toHaveBeenCalled();
+  });
+
+  it("schedules both event reminder ids in parallel", async () => {
+    scheduleEventReminderMock
+      .mockResolvedValueOnce("24h-id")
+      .mockResolvedValueOnce("1h-id");
+
+    await expect(
+      scheduleBothEventReminders(
+        "user@example.com",
+        "Hackathon",
+        new Date("2030-06-01T12:00:00.000Z"),
+        "Main Hall",
+        "operation-1",
+      ),
+    ).resolves.toEqual({
+      reminder24hEmailId: "24h-id",
+      reminder1hEmailId: "1h-id",
+    });
+  });
+
+  it("nulls reminder ids instead of rescheduling when notifications are disabled", async () => {
+    selectWhereResolveMock.mockResolvedValueOnce([
+      {
+        registrationId: "registration-1",
+        studentId: "user-1",
+        email: "user@example.com",
+        reminder24hEmailId: "24h-id",
+        reminder1hEmailId: "1h-id",
+        notifyEventReminders: false,
+      },
+    ]);
+    cancelScheduledEmailMock.mockResolvedValue(true);
+
+    await rescheduleAllEventReminders(
+      "event-1",
+      "Updated title",
+      new Date("2030-06-01T12:00:00.000Z"),
+      "New Hall",
+    );
+
+    expect(cancelScheduledEmailMock).toHaveBeenCalledWith("24h-id");
+    expect(cancelScheduledEmailMock).toHaveBeenCalledWith("1h-id");
+    expect(scheduleEventReminderMock).not.toHaveBeenCalled();
+    expect(updateSetMock).toHaveBeenCalledWith({
+      reminder24hEmailId: null,
+      reminder1hEmailId: null,
+    });
+  });
+
+  it("skips rows without an email during reschedule and clears stored ids", async () => {
+    selectWhereResolveMock.mockResolvedValueOnce([
+      {
+        registrationId: "registration-1",
+        studentId: "user-1",
+        email: null,
+        reminder24hEmailId: null,
+        reminder1hEmailId: "1h-id",
+        notifyEventReminders: true,
+      },
+    ]);
+    cancelScheduledEmailMock.mockResolvedValue(true);
+
+    await rescheduleAllEventReminders(
+      "event-1",
+      "Updated title",
+      new Date("2030-06-01T12:00:00.000Z"),
+      "New Hall",
+    );
+
+    expect(scheduleEventReminderMock).not.toHaveBeenCalled();
+    expect(updateSetMock).toHaveBeenCalledWith({
+      reminder24hEmailId: null,
+      reminder1hEmailId: null,
+    });
+  });
+
+  it("reschedules and persists new reminder ids for each registration", async () => {
+    selectWhereResolveMock.mockResolvedValueOnce([
+      {
+        registrationId: "registration-1",
+        studentId: "user-1",
+        email: "user@example.com",
+        reminder24hEmailId: "old-24h",
+        reminder1hEmailId: "old-1h",
+        notifyEventReminders: true,
+      },
+    ]);
+    cancelScheduledEmailMock.mockResolvedValue(true);
+    scheduleEventReminderMock
+      .mockResolvedValueOnce("new-24h")
+      .mockResolvedValueOnce("new-1h");
+
+    await rescheduleAllEventReminders(
+      "event-1",
+      "Updated title",
+      new Date("2030-06-01T12:00:00.000Z"),
+      "New Hall",
+    );
+
+    expect(scheduleEventReminderMock).toHaveBeenCalledTimes(2);
+    expect(updateSetMock).toHaveBeenCalledWith({
+      reminder24hEmailId: "new-24h",
+      reminder1hEmailId: "new-1h",
+    });
+  });
+
+  it("continues scheduling user event reminders when one registration fails", async () => {
+    selectLimitMock.mockResolvedValueOnce([{ email: "user@example.com" }]);
+    selectWhereResolveMock.mockResolvedValueOnce([
+      {
+        registrationId: "registration-1",
+        title: "Hackathon",
+        eventDate: new Date("2030-06-01T12:00:00.000Z"),
+        location: "Hall A",
+      },
+      {
+        registrationId: "registration-2",
+        title: "Workshop",
+        eventDate: new Date("2030-06-02T12:00:00.000Z"),
+        location: "Hall B",
+      },
+    ]);
+    scheduleEventReminderMock
+      .mockRejectedValueOnce(new Error("boom"))
+      .mockResolvedValueOnce("one")
+      .mockResolvedValueOnce("two")
+      .mockResolvedValueOnce("three");
+
+    await scheduleAllUserEventReminders("user-1");
+
+    expect(runThrottledMock).toHaveBeenCalledTimes(1);
+    expect(scheduleEventReminderMock).toHaveBeenCalledTimes(4);
+    expect(updateSetMock).toHaveBeenCalledWith({
+      reminder24hEmailId: "two",
+      reminder1hEmailId: "three",
+    });
   });
 });

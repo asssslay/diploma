@@ -6,17 +6,23 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const {
   notesGetMock,
   notePostMock,
+  notePatchMock,
   noteDeleteMock,
   deadlinesGetMock,
   deadlinePostMock,
+  deadlinePatchMock,
+  deadlineDeleteMock,
   toastErrorMock,
   toastSuccessMock,
 } = vi.hoisted(() => ({
   notesGetMock: vi.fn(),
   notePostMock: vi.fn(),
+  notePatchMock: vi.fn(),
   noteDeleteMock: vi.fn(),
   deadlinesGetMock: vi.fn(),
   deadlinePostMock: vi.fn(),
+  deadlinePatchMock: vi.fn(),
+  deadlineDeleteMock: vi.fn(),
   toastErrorMock: vi.fn(),
   toastSuccessMock: vi.fn(),
 }));
@@ -39,12 +45,17 @@ vi.mock("@/lib/api", () => ({
         $get: notesGetMock,
         $post: notePostMock,
         ":id": {
+          $patch: notePatchMock,
           $delete: noteDeleteMock,
         },
       },
       deadlines: {
         $get: deadlinesGetMock,
         $post: deadlinePostMock,
+        ":id": {
+          $patch: deadlinePatchMock,
+          $delete: deadlineDeleteMock,
+        },
       },
     },
   })),
@@ -248,6 +259,62 @@ describe("notes and deadlines route", () => {
     expect(toastSuccessMock).toHaveBeenCalledWith("Note deleted");
   });
 
+  it("edits an existing note from the view dialog", async () => {
+    notePatchMock.mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({
+        success: true,
+        data: {
+          ...noteList.data[0],
+          title: "Updated lecture notes",
+          content: "Updated content",
+          updatedAt: "2030-05-02T12:00:00.000Z",
+        },
+      }),
+    });
+
+    const { Route } = await import("./notes-deadlines");
+    render(<Route.component />);
+
+    await userEvent.click(await screen.findByText("Lecture notes"));
+    await userEvent.click(screen.getByRole("button", { name: "Edit" }));
+    await userEvent.clear(screen.getByLabelText("Title"));
+    await userEvent.type(screen.getByLabelText("Title"), "Updated lecture notes");
+    await userEvent.clear(screen.getByLabelText("Content"));
+    await userEvent.type(screen.getByLabelText("Content"), "Updated content");
+    await userEvent.click(screen.getByRole("button", { name: "Save Changes" }));
+
+    await waitFor(() => {
+      expect(notePatchMock).toHaveBeenCalledWith({
+        param: { id: "note-1" },
+        json: {
+          title: "Updated lecture notes",
+          content: "Updated content",
+        },
+      });
+    });
+    expect(toastSuccessMock).toHaveBeenCalledWith("Note updated");
+  });
+
+  it("shows an error toast when creating a note fails", async () => {
+    notePostMock.mockResolvedValue({ ok: false });
+
+    const { Route } = await import("./notes-deadlines");
+    render(<Route.component />);
+
+    await userEvent.click(await screen.findByRole("button", { name: /New Note/i }));
+    await userEvent.type(screen.getByLabelText("Title"), "Broken note");
+    await userEvent.type(screen.getByLabelText("Content"), "This will fail");
+    await userEvent.click(screen.getByRole("button", { name: "Create" }));
+
+    await waitFor(() => {
+      expect(notePostMock).toHaveBeenCalledWith({
+        json: { title: "Broken note", content: "This will fail" },
+      });
+    });
+    expect(toastErrorMock).toHaveBeenCalledWith("Failed to create note");
+  });
+
   it("creates a deadline from the deadlines tab", async () => {
     deadlinePostMock.mockResolvedValue({
       ok: true,
@@ -284,5 +351,101 @@ describe("notes and deadlines route", () => {
       });
     });
     expect(toastSuccessMock).toHaveBeenCalledWith("Deadline created");
+  });
+
+  it("validates that deadlines must be in the future", async () => {
+    const { Route } = await import("./notes-deadlines");
+    render(<Route.component />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Deadlines" }));
+    await userEvent.click(await screen.findByRole("button", { name: /New Deadline/i }));
+    await userEvent.type(screen.getByLabelText("Title"), "Past deadline");
+    await userEvent.type(screen.getByLabelText("Due date"), "2000-01-01T12:00");
+    await userEvent.click(screen.getByRole("button", { name: "Create" }));
+
+    expect(
+      await screen.findByText("Due date must be in the future"),
+    ).toBeInTheDocument();
+    expect(deadlinePostMock).not.toHaveBeenCalled();
+  });
+
+  it("edits an existing deadline", async () => {
+    deadlinePatchMock.mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({
+        success: true,
+        data: {
+          ...deadlineList.data[0],
+          title: "Updated algorithms exam",
+          dueAt: "2030-06-03T13:30:00.000Z",
+        },
+      }),
+    });
+
+    const { Route } = await import("./notes-deadlines");
+    render(<Route.component />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Deadlines" }));
+    await userEvent.click(await screen.findByText("Algorithms exam"));
+    await userEvent.click(screen.getByRole("button", { name: "Edit" }));
+    await userEvent.clear(screen.getByLabelText("Title"));
+    await userEvent.type(
+      screen.getByLabelText("Title"),
+      "Updated algorithms exam",
+    );
+    await userEvent.clear(screen.getByLabelText("Due date"));
+    await userEvent.type(
+      screen.getByLabelText("Due date"),
+      "2030-06-03T13:30",
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Save Changes" }));
+
+    await waitFor(() => {
+      expect(deadlinePatchMock).toHaveBeenCalledWith({
+        param: { id: "deadline-1" },
+        json: {
+          title: "Updated algorithms exam",
+          dueAt: new Date("2030-06-03T13:30").toISOString(),
+        },
+      });
+    });
+    expect(toastSuccessMock).toHaveBeenCalledWith("Deadline updated");
+  });
+
+  it("deletes a deadline from the view dialog", async () => {
+    deadlineDeleteMock.mockResolvedValue({ ok: true });
+
+    const { Route } = await import("./notes-deadlines");
+    render(<Route.component />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Deadlines" }));
+    await userEvent.click(await screen.findByText("Algorithms exam"));
+    await userEvent.click(screen.getByRole("button", { name: /^Delete$/i }));
+    await screen.findByTestId("confirm-dialog");
+    await userEvent.click(screen.getByTestId("confirm-dialog-submit"));
+
+    await waitFor(() => {
+      expect(deadlineDeleteMock).toHaveBeenCalledWith({
+        param: { id: "deadline-1" },
+      });
+    });
+    expect(toastSuccessMock).toHaveBeenCalledWith("Deadline deleted");
+  });
+
+  it("shows an error toast when deadlines fail to load", async () => {
+    deadlinesGetMock.mockResolvedValue({ ok: false });
+
+    const { Route } = await import("./notes-deadlines");
+    render(<Route.component />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Deadlines" }));
+
+    await waitFor(() => {
+      expect(deadlinesGetMock).toHaveBeenCalled();
+    });
+    expect(toastErrorMock).toHaveBeenCalledWith("Failed to load deadlines");
+    expect(
+      await screen.findByText("No deadlines yet. Create one!"),
+    ).toBeInTheDocument();
   });
 });
