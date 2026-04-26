@@ -3,13 +3,16 @@ import { HTTPException } from "hono/http-exception";
 import { and, count, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@my-better-t-app/db";
-import { events, eventRegistrations, profiles, userSettings } from "@my-better-t-app/db/schema";
+import { events, eventRegistrations, profiles } from "@my-better-t-app/db/schema";
 import { createRouter } from "@/lib/app";
+import {
+  registerForEvent,
+  syncEventRegistrationReminders,
+} from "@/lib/event-registration";
 import { auth } from "@/middleware/auth";
 import { validationHook } from "@/lib/zod-hook";
 import {
   cancelBothEventReminders,
-  scheduleBothEventReminders,
 } from "@/lib/event-reminders";
 
 const idParamSchema = z.object({
@@ -142,75 +145,10 @@ const app = createRouter()
     const { id } = c.req.valid("param");
     const user = c.get("user");
 
-    const [event] = await db
-      .select({
-        id: events.id,
-        title: events.title,
-        eventDate: events.eventDate,
-        location: events.location,
-        maxParticipants: events.maxParticipants,
-      })
-      .from(events)
-      .where(eq(events.id, id))
-      .limit(1);
-
-    if (!event) {
-      throw new HTTPException(404, { message: "Event not found" });
-    }
-
-    const [existing] = await db
-      .select({ id: eventRegistrations.id })
-      .from(eventRegistrations)
-      .where(
-        and(
-          eq(eventRegistrations.eventId, id),
-          eq(eventRegistrations.studentId, user.id),
-        ),
-      )
-      .limit(1);
-
-    if (existing) {
-      throw new HTTPException(409, { message: "Already registered for this event" });
-    }
-
-    const [regCount] = await db
-      .select({ value: count() })
-      .from(eventRegistrations)
-      .where(eq(eventRegistrations.eventId, id));
-
-    if ((regCount?.value ?? 0) >= event.maxParticipants) {
-      throw new HTTPException(409, { message: "Event is full" });
-    }
-
-    const [studentProfile] = await db
-      .select({ email: profiles.email })
-      .from(profiles)
-      .where(eq(profiles.id, user.id))
-      .limit(1);
-
-    const [settingsRow] = await db
-      .select({ notify: userSettings.notifyEventReminders })
-      .from(userSettings)
-      .where(eq(userSettings.id, user.id))
-      .limit(1);
-    const notifyEnabled = settingsRow?.notify ?? true;
-
-    const operationId = crypto.randomUUID();
-    const reminders = studentProfile?.email && notifyEnabled
-      ? await scheduleBothEventReminders(
-          studentProfile.email,
-          event.title,
-          event.eventDate,
-          event.location,
-          operationId,
-        )
-      : { reminder24hEmailId: null, reminder1hEmailId: null };
-
-    await db.insert(eventRegistrations).values({
-      eventId: id,
+    const registeredEvent = await registerForEvent(id, user.id);
+    await syncEventRegistrationReminders({
+      ...registeredEvent,
       studentId: user.id,
-      reminder24hEmailId: reminders.reminder24hEmailId,
-      reminder1hEmailId: reminders.reminder1hEmailId,
     });
 
     return c.json({ success: true, data: { eventId: id, registered: true } });
