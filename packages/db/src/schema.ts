@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
   boolean,
   foreignKey,
+  index,
   integer,
   pgEnum,
   pgPolicy,
@@ -351,6 +352,8 @@ export const eventRegistrations = pgTable(
       table.studentId,
     ),
 
+    index("event_registrations_student_id_idx").on(table.studentId),
+
     // --- SELECT policies ---
     pgPolicy("admins_read_all_registrations", {
       for: "select",
@@ -468,6 +471,9 @@ export const discussionComments = pgTable(
       foreignColumns: [profiles.id],
       name: "discussion_comments_author_id_profiles_fk",
     }).onDelete("cascade"),
+
+    index("discussion_comments_discussion_id_idx").on(table.discussionId),
+    index("discussion_comments_author_id_idx").on(table.authorId),
 
     // --- SELECT policies ---
     pgPolicy("authenticated_read_discussion_comments", {
@@ -679,6 +685,8 @@ export const deadlines = pgTable(
       foreignColumns: [profiles.id],
       name: "deadlines_user_id_profiles_fk",
     }).onDelete("cascade"),
+
+    index("deadlines_user_id_due_at_idx").on(table.userId, table.dueAt),
 
     pgPolicy("owner_read_own_deadlines", {
       for: "select",
