@@ -36,6 +36,7 @@ const app = createRouter()
   .get("/me", async (c) => {
     const user = c.get("user");
 
+    // Fetch the profile payload and activity gate together because profile completion directly shapes the UI.
     const [profile, activityGate] = await Promise.all([
       db
         .select({
@@ -111,6 +112,7 @@ const app = createRouter()
       throw new HTTPException(400, { message: "Avatar must be under 2MB" });
     }
 
+    // Upserting under a user-stable path keeps avatar replacements simple without orphaning old filenames.
     const ext = file.name.split(".").pop() ?? "jpg";
     const path = `avatars/${user.id}.${ext}`;
     const buffer = await file.arrayBuffer();
@@ -127,6 +129,7 @@ const app = createRouter()
       .from("media")
       .getPublicUrl(path);
 
+    // Cache-bust the public URL so clients pick up the new image immediately after upload.
     const avatarUrl = `${urlData.publicUrl}?t=${Date.now()}`;
 
     await db
@@ -141,6 +144,7 @@ const app = createRouter()
     const user = c.get("user");
     const activityGate = await getActivityGateForUser(user.id);
 
+    // Background customization is a gated personalization reward, so return the full gate snapshot on denial.
     if (!activityGate.personalization.permissions.canChangeBackground) {
       return c.json(
         {
@@ -187,6 +191,7 @@ const app = createRouter()
       .from("media")
       .getPublicUrl(path);
 
+    // Cache-bust here too; the background is displayed prominently and stale CDN responses are noticeable.
     const backgroundUrl = `${urlData.publicUrl}?t=${Date.now()}`;
 
     await db
@@ -201,6 +206,7 @@ const app = createRouter()
     const user = c.get("user");
     const updates = c.req.valid("json");
 
+    // Base profile fields and student-only fields live in separate tables, so writes are split intentionally.
     if (updates.fullName !== undefined) {
       await db
         .update(profiles)
@@ -222,6 +228,7 @@ const app = createRouter()
         .where(eq(studentProfiles.id, user.id));
     }
 
+    // Re-read after patch so the client gets the canonical merged profile plus the latest gate recalculation.
     const [profile, activityGate] = await Promise.all([
       db
         .select({

@@ -60,10 +60,12 @@ export function accountRejectedEmail(
   };
 }
 
+// Sends a rendered transactional email and logs provider failures without breaking the caller flow.
 export async function sendEmail(
   to: string,
   template: EmailTemplate,
 ): Promise<void> {
+  // Fire-and-log keeps approval/rejection flows resilient even if email delivery is temporarily degraded.
   const { error } = await resend.emails.send({
     from: env.EMAIL_FROM,
     to: [to],
@@ -127,6 +129,7 @@ export function deadlineReminderEmail(
   };
 }
 
+// Queues a deadline reminder email when the send time is still valid for the provider window.
 export async function scheduleDeadlineReminder(
   to: string,
   title: string,
@@ -137,6 +140,7 @@ export async function scheduleDeadlineReminder(
   const scheduledAt = new Date(dueAt.getTime() - hoursBefore * 60 * 60 * 1000);
   const now = Date.now();
 
+  // Skip impossible schedules instead of throwing so reminder setup can stay best-effort around deadline CRUD.
   if (scheduledAt.getTime() <= now) {
     console.log(
       `[reminder] Skipping ${hoursBefore}h schedule for "${title}": scheduledAt ${scheduledAt.toISOString()} is in the past`,
@@ -166,6 +170,7 @@ export async function scheduleDeadlineReminder(
         ],
       },
       {
+        // Idempotency lets reschedule/retry paths call this safely without duplicating queued emails.
         idempotencyKey: `deadline-reminder-${hoursBefore}h/${operationId}`,
       },
     );
@@ -245,6 +250,7 @@ export function eventReminderEmail(
   };
 }
 
+// Queues an event reminder email when the requested send time is still schedulable.
 export async function scheduleEventReminder(
   to: string,
   title: string,
@@ -256,6 +262,7 @@ export async function scheduleEventReminder(
   const scheduledAt = new Date(eventDate.getTime() - hoursBefore * 60 * 60 * 1000);
   const now = Date.now();
 
+  // Event reminder scheduling follows the same "best effort within provider limits" contract as deadlines.
   if (scheduledAt.getTime() <= now) {
     console.log(
       `[reminder] Skipping ${hoursBefore}h event schedule for "${title}": scheduledAt ${scheduledAt.toISOString()} is in the past`,
@@ -285,6 +292,7 @@ export async function scheduleEventReminder(
         ],
       },
       {
+        // The operation id scopes retries for one logical registration/update cycle.
         idempotencyKey: `event-reminder-${hoursBefore}h/${operationId}`,
       },
     );
@@ -333,7 +341,9 @@ export async function cancelScheduledEmail(
   }
 }
 
+// Escapes dynamic strings before they are interpolated into raw HTML templates.
 function escapeHtml(value: string): string {
+  // Templates interpolate user-authored strings directly into HTML, so escape on every dynamic field.
   return value
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")

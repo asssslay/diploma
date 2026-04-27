@@ -106,6 +106,7 @@ export function DeadlinesTab() {
   }, [fetchDeadlines]);
 
   const filteredDeadlines = useMemo(() => {
+    // Search and sort stay client-side because this tab always works on one small fetched window.
     let result = [...items];
     if (search) {
       const query = search.toLowerCase();
@@ -160,6 +161,7 @@ export function DeadlinesTab() {
 
   function handleCancelEdit() {
     setErrors({});
+    // If edit started from the detail view, return to that item instead of closing the dialog outright.
     if (activeDeadline) {
       cancelEdit();
       return;
@@ -188,6 +190,7 @@ export function DeadlinesTab() {
       const api = await getApiClient();
       const dueAtIso = dueDate.toISOString();
 
+      // Share one submit path so create and edit keep the same validation and pending-state flow.
       if (mode === "edit" && activeDeadline) {
         const response = await api.api.deadlines[":id"].$patch({
           param: { id: activeDeadline.id },

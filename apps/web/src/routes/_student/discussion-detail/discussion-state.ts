@@ -10,6 +10,7 @@ export type OptimisticAction =
     }
   | { type: "delete-comment"; commentId: string };
 
+// Reuse the same pure transforms for optimistic UI and committed server responses.
 export function applyOptimisticDiscussionAction(
   current: DiscussionDetail | null,
   action: OptimisticAction,
@@ -23,6 +24,7 @@ export function applyOptimisticDiscussionAction(
       const nextDiscussion = toggleCommentReaction(current, action.commentId);
       return {
         ...nextDiscussion,
+        // Helpful markers belong to the author, so update all of their visible comments together.
         comments: nextDiscussion.comments.map((comment) =>
           action.helpfulAuthorId === comment.authorId &&
           typeof action.authorHasHelpfulMarker === "boolean"

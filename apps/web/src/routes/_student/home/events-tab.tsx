@@ -84,6 +84,7 @@ export function useEventsTabState(): EventsTabState {
   }, [fetchEvents]);
 
   const filteredEvents = useMemo(() => {
+    // Search, filter, and sort are client-side so these controls do not trigger extra fetches.
     let result = [...eventsList];
     if (search) {
       const query = search.toLowerCase();
@@ -231,6 +232,7 @@ export function EventsTab({
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filteredEvents.map((event) => {
+            // Keep registration-derived badge state in one place before rendering the card branches.
             const spotsLeft = event.maxParticipants - event.registrationCount;
             const isFull = spotsLeft <= 0;
 

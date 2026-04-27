@@ -17,6 +17,7 @@ export type EventReminderIds = {
   reminder1hEmailId: string | null;
 };
 
+// Schedules the paired 24h and 1h reminders for one event registration lifecycle.
 export async function scheduleBothEventReminders(
   email: string,
   title: string,
@@ -24,6 +25,7 @@ export async function scheduleBothEventReminders(
   location: string,
   operationId: string,
 ): Promise<EventReminderIds> {
+  // Both reminders share one operation id so retries stay grouped in the mail provider logs.
   const [reminder24hEmailId, reminder1hEmailId] = await Promise.all([
     scheduleEventReminder(email, title, eventDate, location, 24, operationId),
     scheduleEventReminder(email, title, eventDate, location, 1, operationId),
@@ -31,10 +33,12 @@ export async function scheduleBothEventReminders(
   return { reminder24hEmailId, reminder1hEmailId };
 }
 
+// Cancels whichever reminder IDs are currently attached to a registration row.
 export async function cancelBothEventReminders(
   ids: Partial<EventReminderIds>,
 ): Promise<void> {
   const tasks: Promise<boolean>[] = [];
+  // Missing IDs are normal when reminders were never scheduled or were cleared by preferences.
   if (ids.reminder24hEmailId)
     tasks.push(cancelScheduledEmail(ids.reminder24hEmailId));
   if (ids.reminder1hEmailId)
@@ -49,6 +53,7 @@ export async function cancelBothEventReminders(
  *
  * Throttled to stay under Resend's 5 rps team limit.
  */
+// Cancels all queued reminders linked to an event before destructive admin actions.
 export async function cancelAllEventReminders(
   eventId: string,
 ): Promise<number> {
@@ -62,6 +67,7 @@ export async function cancelAllEventReminders(
 
   const cancelTasks: Array<() => Promise<boolean>> = [];
   for (const row of rows) {
+    // Capture each ID into its own closure so throttling later cannot read a mutated loop variable.
     if (row.reminder24hEmailId) {
       const id = row.reminder24hEmailId;
       cancelTasks.push(() => cancelScheduledEmail(id));
@@ -92,6 +98,7 @@ export async function cancelAllEventReminders(
  * a single UPDATE. The outer loop is throttled to stay under Resend's 5 rps
  * team limit.
  */
+// Rebuilds reminders for every registration after event details change.
 export async function rescheduleAllEventReminders(
   eventId: string,
   newTitle: string,
@@ -123,6 +130,7 @@ export async function rescheduleAllEventReminders(
 
   const tasks = rows.map((row) => async () => {
     try {
+      // Cancel first so a date/title edit cannot leave stale reminders behind if rescheduling succeeds.
       await cancelBothEventReminders(row);
 
       // Respect user notification preferences (no row = default true)
@@ -134,6 +142,7 @@ export async function rescheduleAllEventReminders(
         return;
       }
 
+      // Missing email is treated as a recoverable data issue; we clear stored ids so later retries are clean.
       if (!row.email) {
         console.warn(
           `[events] Skipping reschedule for registration=${row.registrationId}: missing email`,
@@ -146,6 +155,7 @@ export async function rescheduleAllEventReminders(
       }
 
       const operationId = crypto.randomUUID();
+      // Scheduling both reminders before the DB update avoids persisting IDs for emails that never got queued.
       const reminders = await scheduleBothEventReminders(
         row.email,
         newTitle,
@@ -176,6 +186,7 @@ export async function rescheduleAllEventReminders(
  * Cancels all scheduled event reminders for a user and nulls out
  * the stored Resend IDs. Called when the user disables event notifications.
  */
+// Clears every stored and queued event reminder owned by one user.
 export async function cancelAllUserEventReminders(
   userId: string,
 ): Promise<void> {
@@ -190,6 +201,7 @@ export async function cancelAllUserEventReminders(
 
   const cancelTasks: Array<() => Promise<boolean>> = [];
   for (const row of rows) {
+    // We only enqueue provider cancels for IDs we actually stored, then null everything in one DB write below.
     if (row.reminder24hEmailId) {
       const emailId = row.reminder24hEmailId;
       cancelTasks.push(() => cancelScheduledEmail(emailId));
@@ -217,6 +229,7 @@ export async function cancelAllUserEventReminders(
  * Schedules reminders (24h + 1h) for all upcoming event registrations of a user.
  * Called when the user re-enables event notifications.
  */
+// Recreates reminders for a user's future registrations after notifications are re-enabled.
 export async function scheduleAllUserEventReminders(
   userId: string,
 ): Promise<void> {
@@ -253,6 +266,7 @@ export async function scheduleAllUserEventReminders(
   const tasks = rows.map((row) => async () => {
     try {
       const operationId = crypto.randomUUID();
+      // This path is only for future events; past events are filtered out at query time.
       const reminders = await scheduleBothEventReminders(
         userRow.email,
         row.title,

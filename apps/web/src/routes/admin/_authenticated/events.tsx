@@ -99,6 +99,7 @@ function EventsPage() {
   useEffect(() => { fetchEvents(); }, [fetchEvents]);
 
   async function fetchEventDetail(id: string) {
+    // Registrations are loaded on demand so the main list stays cheap when admins only need event CRUD.
     setIsLoadingDetail(true);
     try {
       const api = await getApiClient();
@@ -113,6 +114,7 @@ function EventsPage() {
   function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null;
     setImageFile(file);
+    // Revoke the previous blob URL immediately to avoid leaking previews during repeated image edits.
     if (imagePreview) URL.revokeObjectURL(imagePreview);
     setImagePreview(file ? URL.createObjectURL(file) : null);
     if (file) setExistingImageUrl(null);
@@ -160,6 +162,7 @@ function EventsPage() {
       let imageUrl: string | undefined | null = existingImageUrl;
 
       if (imageFile) {
+        // Upload is kept outside the typed API client because this endpoint accepts multipart form data.
         const { data: { session } } = await supabase.auth.getSession();
         const formData = new FormData(); formData.append("image", imageFile);
         const uploadRes = await fetch(`${env.VITE_SERVER_URL}/api/admin/events/upload-image`, { method: "POST", headers: { Authorization: `Bearer ${session?.access_token}` }, body: formData });
@@ -169,6 +172,7 @@ function EventsPage() {
 
       const api = await getApiClient();
 
+      // Create and edit share one payload builder so validation and image handling stay aligned.
       if (isEditing) {
         const res = await api.api.admin.events[":id"].$patch({
           param: { id: editingId },
@@ -212,6 +216,7 @@ function EventsPage() {
       if (!res.ok) { toast.error("Failed to delete event"); return; }
       toast.success("Event deleted");
       setDeleteDialogOpen(false); setDeleteTargetId(null);
+      // Clear the side-panel detail if the deleted event was the one currently being inspected.
       if (selectedEvent?.id === deleteTargetId) setSelectedEvent(null);
       fetchEvents();
     } catch { toast.error("Failed to delete event"); }
