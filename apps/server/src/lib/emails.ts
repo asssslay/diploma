@@ -6,8 +6,28 @@ type EmailTemplate = {
   html: string;
 };
 
+type ReminderTag = {
+  name: string;
+  value: string;
+};
+
+type ScheduleReminderOptions = {
+  to: string;
+  template: EmailTemplate;
+  targetDate: Date;
+  hoursBefore: number;
+  tags: ReminderTag[];
+  idempotencyKey: string;
+  skipPastMessage: (scheduledAtIso: string) => string;
+  skipBeyondWindowMessage: (scheduledAtIso: string) => string;
+  failureMessage: (scheduledAtIso: string) => string;
+  unexpectedErrorMessage: string;
+  successMessage: (scheduledAtIso: string, emailId: string | null | undefined) => string;
+};
+
 // Resend can only schedule emails up to 30 days in advance.
 const MAX_SCHEDULE_DAYS = 30;
+const SCHEDULE_WINDOW_MS = MAX_SCHEDULE_DAYS * 24 * 60 * 60 * 1000;
 
 export function accountApprovedEmail(fullName: string | null): EmailTemplate {
   const name = fullName?.trim() || "there";
@@ -18,11 +38,11 @@ export function accountApprovedEmail(fullName: string | null): EmailTemplate {
         <h1 style="font-size: 22px; font-weight: 700; margin: 0 0 16px;">Welcome to UniCommunity</h1>
         <p style="font-size: 15px; line-height: 1.6; margin: 0 0 12px;">Hi ${escapeHtml(name)},</p>
         <p style="font-size: 15px; line-height: 1.6; margin: 0 0 12px;">
-          Great news — your student account has been approved. You can now sign in and start
+          Great news - your student account has been approved. You can now sign in and start
           exploring news, events, and discussions from across the university community.
         </p>
         <p style="font-size: 13px; line-height: 1.6; color: #737373; margin: 32px 0 0;">
-          — The UniCommunity Team
+          - The UniCommunity Team
         </p>
       </div>
     `,
@@ -53,7 +73,7 @@ export function accountRejectedEmail(
           please contact your university administrator.
         </p>
         <p style="font-size: 13px; line-height: 1.6; color: #737373; margin: 32px 0 0;">
-          — The UniCommunity Team
+          - The UniCommunity Team
         </p>
       </div>
     `,
@@ -105,7 +125,7 @@ export function deadlineReminderEmail(
   const leadText =
     hoursBefore >= 24
       ? "This is a friendly reminder that the following deadline is due in about 24 hours."
-      : `Heads up — the following deadline is due in about ${hoursBefore} hour${hoursBefore === 1 ? "" : "s"}.`;
+      : `Heads up - the following deadline is due in about ${hoursBefore} hour${hoursBefore === 1 ? "" : "s"}.`;
 
   return {
     subject,
@@ -122,7 +142,7 @@ export function deadlineReminderEmail(
           </p>
         </div>
         <p style="font-size: 13px; line-height: 1.6; color: #737373; margin: 32px 0 0;">
-          — The UniCommunity Team
+          - The UniCommunity Team
         </p>
       </div>
     `,
@@ -137,62 +157,27 @@ export async function scheduleDeadlineReminder(
   hoursBefore: number,
   operationId: string,
 ): Promise<string | null> {
-  const scheduledAt = new Date(dueAt.getTime() - hoursBefore * 60 * 60 * 1000);
-  const now = Date.now();
-
-  // Skip impossible schedules instead of throwing so reminder setup can stay best-effort around deadline CRUD.
-  if (scheduledAt.getTime() <= now) {
-    console.log(
-      `[reminder] Skipping ${hoursBefore}h schedule for "${title}": scheduledAt ${scheduledAt.toISOString()} is in the past`,
-    );
-    return null;
-  }
-  if (scheduledAt.getTime() > now + MAX_SCHEDULE_DAYS * 24 * 60 * 60 * 1000) {
-    console.log(
-      `[reminder] Skipping ${hoursBefore}h schedule for "${title}": scheduledAt ${scheduledAt.toISOString()} is beyond 30-day window`,
-    );
-    return null;
-  }
-
-  const template = deadlineReminderEmail(title, dueAt, hoursBefore);
-
-  try {
-    const { data, error } = await resend.emails.send(
-      {
-        from: env.EMAIL_FROM,
-        to: [to],
-        subject: template.subject,
-        html: template.html,
-        scheduledAt: scheduledAt.toISOString(),
-        tags: [
-          { name: "type", value: "deadline_reminder" },
-          { name: "hours_before", value: String(hoursBefore) },
-        ],
-      },
-      {
-        // Idempotency lets reschedule/retry paths call this safely without duplicating queued emails.
-        idempotencyKey: `deadline-reminder-${hoursBefore}h/${operationId}`,
-      },
-    );
-
-    if (error) {
-      console.error(
-        `[reminder] Failed to schedule ${hoursBefore}h "${title}" for ${scheduledAt.toISOString()}:`,
-        error,
-      );
-      return null;
-    }
-    console.log(
-      `[reminder] Scheduled ${hoursBefore}h "${title}" → id=${data?.id} scheduledAt=${scheduledAt.toISOString()}`,
-    );
-    return data?.id ?? null;
-  } catch (err) {
-    console.error(
-      `[reminder] Unexpected error scheduling ${hoursBefore}h "${title}":`,
-      err,
-    );
-    return null;
-  }
+  return scheduleReminderEmail({
+    to,
+    template: deadlineReminderEmail(title, dueAt, hoursBefore),
+    targetDate: dueAt,
+    hoursBefore,
+    tags: [
+      { name: "type", value: "deadline_reminder" },
+      { name: "hours_before", value: String(hoursBefore) },
+    ],
+    // Idempotency lets reschedule/retry paths call this safely without duplicating queued emails.
+    idempotencyKey: `deadline-reminder-${hoursBefore}h/${operationId}`,
+    skipPastMessage: (scheduledAtIso) =>
+      `[reminder] Skipping ${hoursBefore}h schedule for "${title}": scheduledAt ${scheduledAtIso} is in the past`,
+    skipBeyondWindowMessage: (scheduledAtIso) =>
+      `[reminder] Skipping ${hoursBefore}h schedule for "${title}": scheduledAt ${scheduledAtIso} is beyond 30-day window`,
+    failureMessage: (scheduledAtIso) =>
+      `[reminder] Failed to schedule ${hoursBefore}h "${title}" for ${scheduledAtIso}:`,
+    unexpectedErrorMessage: `[reminder] Unexpected error scheduling ${hoursBefore}h "${title}":`,
+    successMessage: (scheduledAtIso, emailId) =>
+      `[reminder] Scheduled ${hoursBefore}h "${title}" -> id=${emailId} scheduledAt=${scheduledAtIso}`,
+  });
 }
 
 export function eventReminderEmail(
@@ -223,7 +208,7 @@ export function eventReminderEmail(
   const leadText =
     hoursBefore >= 24
       ? "This is a friendly reminder that the following event starts in about 24 hours."
-      : `Heads up — the following event starts in about ${hoursBefore} hour${hoursBefore === 1 ? "" : "s"}.`;
+      : `Heads up - the following event starts in about ${hoursBefore} hour${hoursBefore === 1 ? "" : "s"}.`;
 
   return {
     subject,
@@ -243,7 +228,7 @@ export function eventReminderEmail(
           </p>
         </div>
         <p style="font-size: 13px; line-height: 1.6; color: #737373; margin: 32px 0 0;">
-          — The UniCommunity Team
+          - The UniCommunity Team
         </p>
       </div>
     `,
@@ -259,62 +244,27 @@ export async function scheduleEventReminder(
   hoursBefore: number,
   operationId: string,
 ): Promise<string | null> {
-  const scheduledAt = new Date(eventDate.getTime() - hoursBefore * 60 * 60 * 1000);
-  const now = Date.now();
-
-  // Event reminder scheduling follows the same "best effort within provider limits" contract as deadlines.
-  if (scheduledAt.getTime() <= now) {
-    console.log(
-      `[reminder] Skipping ${hoursBefore}h event schedule for "${title}": scheduledAt ${scheduledAt.toISOString()} is in the past`,
-    );
-    return null;
-  }
-  if (scheduledAt.getTime() > now + MAX_SCHEDULE_DAYS * 24 * 60 * 60 * 1000) {
-    console.log(
-      `[reminder] Skipping ${hoursBefore}h event schedule for "${title}": scheduledAt ${scheduledAt.toISOString()} is beyond 30-day window`,
-    );
-    return null;
-  }
-
-  const template = eventReminderEmail(title, eventDate, location, hoursBefore);
-
-  try {
-    const { data, error } = await resend.emails.send(
-      {
-        from: env.EMAIL_FROM,
-        to: [to],
-        subject: template.subject,
-        html: template.html,
-        scheduledAt: scheduledAt.toISOString(),
-        tags: [
-          { name: "type", value: "event_reminder" },
-          { name: "hours_before", value: String(hoursBefore) },
-        ],
-      },
-      {
-        // The operation id scopes retries for one logical registration/update cycle.
-        idempotencyKey: `event-reminder-${hoursBefore}h/${operationId}`,
-      },
-    );
-
-    if (error) {
-      console.error(
-        `[reminder] Failed to schedule ${hoursBefore}h event "${title}" for ${scheduledAt.toISOString()}:`,
-        error,
-      );
-      return null;
-    }
-    console.log(
-      `[reminder] Scheduled ${hoursBefore}h event "${title}" → id=${data?.id} scheduledAt=${scheduledAt.toISOString()}`,
-    );
-    return data?.id ?? null;
-  } catch (err) {
-    console.error(
-      `[reminder] Unexpected error scheduling ${hoursBefore}h event "${title}":`,
-      err,
-    );
-    return null;
-  }
+  return scheduleReminderEmail({
+    to,
+    template: eventReminderEmail(title, eventDate, location, hoursBefore),
+    targetDate: eventDate,
+    hoursBefore,
+    tags: [
+      { name: "type", value: "event_reminder" },
+      { name: "hours_before", value: String(hoursBefore) },
+    ],
+    // The operation id scopes retries for one logical registration/update cycle.
+    idempotencyKey: `event-reminder-${hoursBefore}h/${operationId}`,
+    skipPastMessage: (scheduledAtIso) =>
+      `[reminder] Skipping ${hoursBefore}h event schedule for "${title}": scheduledAt ${scheduledAtIso} is in the past`,
+    skipBeyondWindowMessage: (scheduledAtIso) =>
+      `[reminder] Skipping ${hoursBefore}h event schedule for "${title}": scheduledAt ${scheduledAtIso} is beyond 30-day window`,
+    failureMessage: (scheduledAtIso) =>
+      `[reminder] Failed to schedule ${hoursBefore}h event "${title}" for ${scheduledAtIso}:`,
+    unexpectedErrorMessage: `[reminder] Unexpected error scheduling ${hoursBefore}h event "${title}":`,
+    successMessage: (scheduledAtIso, emailId) =>
+      `[reminder] Scheduled ${hoursBefore}h event "${title}" -> id=${emailId} scheduledAt=${scheduledAtIso}`,
+  });
 }
 
 /**
@@ -338,6 +288,76 @@ export async function cancelScheduledEmail(
   } catch (err) {
     console.error(`[reminder] Unexpected error cancelling id=${emailId}:`, err);
     return false;
+  }
+}
+
+function calculateScheduledAt(targetDate: Date, hoursBefore: number): Date {
+  return new Date(targetDate.getTime() - hoursBefore * 60 * 60 * 1000);
+}
+
+function isOutsideScheduleWindow(scheduledAt: Date): {
+  inPast: boolean;
+  beyondWindow: boolean;
+} {
+  const scheduledAtMs = scheduledAt.getTime();
+  const now = Date.now();
+
+  return {
+    inPast: scheduledAtMs <= now,
+    beyondWindow: scheduledAtMs > now + SCHEDULE_WINDOW_MS,
+  };
+}
+
+async function scheduleReminderEmail({
+  to,
+  template,
+  targetDate,
+  hoursBefore,
+  tags,
+  idempotencyKey,
+  skipPastMessage,
+  skipBeyondWindowMessage,
+  failureMessage,
+  unexpectedErrorMessage,
+  successMessage,
+}: ScheduleReminderOptions): Promise<string | null> {
+  const scheduledAt = calculateScheduledAt(targetDate, hoursBefore);
+  const scheduledAtIso = scheduledAt.toISOString();
+  const scheduleWindow = isOutsideScheduleWindow(scheduledAt);
+
+  if (scheduleWindow.inPast) {
+    console.log(skipPastMessage(scheduledAtIso));
+    return null;
+  }
+
+  if (scheduleWindow.beyondWindow) {
+    console.log(skipBeyondWindowMessage(scheduledAtIso));
+    return null;
+  }
+
+  try {
+    const { data, error } = await resend.emails.send(
+      {
+        from: env.EMAIL_FROM,
+        to: [to],
+        subject: template.subject,
+        html: template.html,
+        scheduledAt: scheduledAtIso,
+        tags,
+      },
+      { idempotencyKey },
+    );
+
+    if (error) {
+      console.error(failureMessage(scheduledAtIso), error);
+      return null;
+    }
+
+    console.log(successMessage(scheduledAtIso, data?.id));
+    return data?.id ?? null;
+  } catch (err) {
+    console.error(unexpectedErrorMessage, err);
+    return null;
   }
 }
 

@@ -73,4 +73,31 @@ describe("buildActivityGate", () => {
     expect(gate.permissions.canCreateDiscussions).toBe(true);
     expect(gate.personalization.permissions.canChangeBackground).toBe(true);
   });
+
+  it.each([
+    ["fullName", { fullName: " " }],
+    ["faculty", { faculty: null }],
+    ["group", { group: " " }],
+    ["bio", { bio: "" }],
+    ["interests", { interests: [] }],
+  ] as const)(
+    "marks %s as missing when its completeness rule fails",
+    (field, overrides) => {
+      const gate = buildActivityGate(
+        {
+          role: "student",
+          fullName: "Ada Lovelace",
+          faculty: "CS",
+          group: "CS-101",
+          bio: "Writes code",
+          interests: ["math"],
+          ...overrides,
+        },
+        1,
+        1,
+      );
+
+      expect(gate.profileCompletion.missingRequiredProfileFields).toEqual([field]);
+    },
+  );
 });

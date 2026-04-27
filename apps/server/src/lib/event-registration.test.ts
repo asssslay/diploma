@@ -167,6 +167,23 @@ describe("event registration helpers", () => {
     expect(updateMock).not.toHaveBeenCalled();
   });
 
+  it("skips reminder sync when notifications are disabled", async () => {
+    selectLimitMock
+      .mockResolvedValueOnce([{ email: "student@example.com" }])
+      .mockResolvedValueOnce([{ notify: false }]);
+
+    await syncEventRegistrationReminders({
+      eventId: "event-1",
+      studentId: "student-1",
+      title: "Hackathon",
+      eventDate: new Date("2026-05-01T12:00:00.000Z"),
+      location: "Hall A",
+    });
+
+    expect(scheduleBothEventRemindersMock).not.toHaveBeenCalled();
+    expect(updateMock).not.toHaveBeenCalled();
+  });
+
   it("persists reminder ids when scheduling succeeds", async () => {
     selectLimitMock
       .mockResolvedValueOnce([{ email: "student@example.com" }])
@@ -196,5 +213,26 @@ describe("event registration helpers", () => {
       reminder24hEmailId: "24h-id",
       reminder1hEmailId: "1h-id",
     });
+  });
+
+  it("does not persist reminder ids when scheduling returns nothing", async () => {
+    selectLimitMock
+      .mockResolvedValueOnce([{ email: "student@example.com" }])
+      .mockResolvedValueOnce([{ notify: true }]);
+    scheduleBothEventRemindersMock.mockResolvedValueOnce({
+      reminder24hEmailId: null,
+      reminder1hEmailId: null,
+    });
+
+    await syncEventRegistrationReminders({
+      eventId: "event-1",
+      studentId: "student-1",
+      title: "Hackathon",
+      eventDate: new Date("2026-05-01T12:00:00.000Z"),
+      location: "Hall A",
+    });
+
+    expect(scheduleBothEventRemindersMock).toHaveBeenCalledTimes(1);
+    expect(updateMock).not.toHaveBeenCalled();
   });
 });

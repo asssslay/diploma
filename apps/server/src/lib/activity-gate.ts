@@ -37,37 +37,41 @@ export type ActivityGate = {
   };
 };
 
-type ActivityGateProfileRow = {
+type ActivityGateProfile = {
   role: "admin" | "student";
   fullName: string | null;
   faculty: string | null;
   group: string | null;
   bio: string | null;
   interests: string[] | null;
-} | null;
+};
+
+type ActivityGateProfileRow = ActivityGateProfile | null;
+
+type ProfileFieldChecker = (profile: ActivityGateProfile) => boolean;
 
 function hasContent(value: string | null | undefined): boolean {
   return typeof value === "string" && value.trim().length > 0;
 }
 
+const profileFieldCheckers: Record<RequiredProfileField, ProfileFieldChecker> = {
+  fullName: (profile) => hasContent(profile.fullName),
+  faculty: (profile) => hasContent(profile.faculty),
+  group: (profile) => hasContent(profile.group),
+  bio: (profile) => hasContent(profile.bio),
+  interests: (profile) =>
+    Array.isArray(profile.interests) && profile.interests.length > 0,
+};
+
 function isProfileFieldComplete(
   profile: ActivityGateProfileRow,
   field: RequiredProfileField,
 ): boolean {
-  if (!profile) return false;
-
-  switch (field) {
-    case "fullName":
-      return hasContent(profile.fullName);
-    case "faculty":
-      return hasContent(profile.faculty);
-    case "group":
-      return hasContent(profile.group);
-    case "bio":
-      return hasContent(profile.bio);
-    case "interests":
-      return Array.isArray(profile.interests) && profile.interests.length > 0;
+  if (!profile) {
+    return false;
   }
+
+  return profileFieldCheckers[field](profile);
 }
 
 export function buildActivityGate(

@@ -7,7 +7,10 @@ import {
   profiles,
   userSettings,
 } from "@my-better-t-app/db/schema";
-import { scheduleBothEventReminders } from "@/lib/event-reminders";
+import {
+  scheduleBothEventReminders,
+  type EventReminderIds,
+} from "@/lib/event-reminders";
 
 type RegisteredEvent = {
   eventId: string;
@@ -18,6 +21,11 @@ type RegisteredEvent = {
 
 type SyncEventRegistrationRemindersParams = RegisteredEvent & {
   studentId: string;
+};
+
+type EventReminderSyncContext = {
+  email: string | null;
+  notifyEnabled: boolean;
 };
 
 export async function registerForEvent(
@@ -99,52 +107,30 @@ export async function syncEventRegistrationReminders(
   const { eventId, studentId, title, eventDate, location } = params;
 
   try {
-    const [[studentProfile], [settingsRow]] = await Promise.all([
-      db
-        .select({ email: profiles.email })
-        .from(profiles)
-        .where(eq(profiles.id, studentId))
-        .limit(1),
-      db
-        .select({ notify: userSettings.notifyEventReminders })
-        .from(userSettings)
-        .where(eq(userSettings.id, studentId))
-        .limit(1),
-    ]);
-
-    const notifyEnabled = settingsRow?.notify ?? true;
-    if (!studentProfile?.email || !notifyEnabled) {
+    const context = await loadEventReminderSyncContext(studentId);
+    if (!shouldScheduleEventRegistrationReminders(context)) {
       return;
     }
 
-    const operationId = crypto.randomUUID();
     const reminders = await scheduleBothEventReminders(
-      studentProfile.email,
+      context.email,
       title,
       eventDate,
       location,
-      operationId,
+      crypto.randomUUID(),
     );
 
-    if (!reminders.reminder24hEmailId && !reminders.reminder1hEmailId) {
+    if (!hasAnyReminderId(reminders)) {
       return;
     }
 
-    const updated = await db
-      .update(eventRegistrations)
-      .set({
-        reminder24hEmailId: reminders.reminder24hEmailId,
-        reminder1hEmailId: reminders.reminder1hEmailId,
-      })
-      .where(
-        and(
-          eq(eventRegistrations.eventId, eventId),
-          eq(eventRegistrations.studentId, studentId),
-        ),
-      )
-      .returning({ id: eventRegistrations.id });
+    const updated = await persistEventRegistrationReminderIds(
+      eventId,
+      studentId,
+      reminders,
+    );
 
-    if (!updated[0]) {
+    if (!updated) {
       console.warn(
         `[events] Registration disappeared before reminder sync completed for event=${eventId} student=${studentId}`,
       );
@@ -155,6 +141,60 @@ export async function syncEventRegistrationReminders(
       error,
     );
   }
+}
+
+async function loadEventReminderSyncContext(
+  studentId: string,
+): Promise<EventReminderSyncContext> {
+  const [[studentProfile], [settingsRow]] = await Promise.all([
+    db
+      .select({ email: profiles.email })
+      .from(profiles)
+      .where(eq(profiles.id, studentId))
+      .limit(1),
+    db
+      .select({ notify: userSettings.notifyEventReminders })
+      .from(userSettings)
+      .where(eq(userSettings.id, studentId))
+      .limit(1),
+  ]);
+
+  return {
+    email: studentProfile?.email ?? null,
+    notifyEnabled: settingsRow?.notify ?? true,
+  };
+}
+
+function shouldScheduleEventRegistrationReminders(
+  context: EventReminderSyncContext,
+): context is EventReminderSyncContext & { email: string } {
+  return Boolean(context.email) && context.notifyEnabled;
+}
+
+function hasAnyReminderId(reminders: EventReminderIds): boolean {
+  return Boolean(reminders.reminder24hEmailId || reminders.reminder1hEmailId);
+}
+
+async function persistEventRegistrationReminderIds(
+  eventId: string,
+  studentId: string,
+  reminders: EventReminderIds,
+): Promise<boolean> {
+  const updated = await db
+    .update(eventRegistrations)
+    .set({
+      reminder24hEmailId: reminders.reminder24hEmailId,
+      reminder1hEmailId: reminders.reminder1hEmailId,
+    })
+    .where(
+      and(
+        eq(eventRegistrations.eventId, eventId),
+        eq(eventRegistrations.studentId, studentId),
+      ),
+    )
+    .returning({ id: eventRegistrations.id });
+
+  return Boolean(updated[0]);
 }
 
 function isUniqueViolation(error: unknown): error is { code: string } {
