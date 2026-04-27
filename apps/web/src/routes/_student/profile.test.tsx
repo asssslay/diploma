@@ -225,8 +225,9 @@ describe("profile route", () => {
     const { container } = render(<Route.component />);
 
     await screen.findByRole("heading", { name: "Ada Lovelace" });
-    const fileInputs = container.querySelectorAll('input[type="file"]');
-    const avatarInput = fileInputs[1] as HTMLInputElement;
+    const avatarInput = container.querySelector(
+      "#profile-avatar-input",
+    ) as HTMLInputElement;
 
     fireEvent.change(avatarInput, {
       target: {
@@ -259,8 +260,9 @@ describe("profile route", () => {
     const { container } = render(<Route.component />);
 
     await screen.findByRole("heading", { name: "Ada Lovelace" });
-    const fileInputs = container.querySelectorAll('input[type="file"]');
-    const avatarInput = fileInputs[1] as HTMLInputElement;
+    const avatarInput = container.querySelector(
+      "#profile-avatar-input",
+    ) as HTMLInputElement;
 
     fireEvent.change(avatarInput, {
       target: {
@@ -302,7 +304,7 @@ describe("profile route", () => {
 
     await screen.findByText("0/1 events");
     const backgroundInput = container.querySelector(
-      'label input[type="file"]',
+      "#profile-background-input",
     ) as HTMLInputElement;
 
     fireEvent.change(backgroundInput, {
@@ -357,8 +359,9 @@ describe("profile route", () => {
     const { container } = render(<Route.component />);
 
     await screen.findByText("1/1 events");
-    const fileInputs = container.querySelectorAll('input[type="file"]');
-    const backgroundInput = fileInputs[0] as HTMLInputElement;
+    const backgroundInput = container.querySelector(
+      "#profile-background-input",
+    ) as HTMLInputElement;
 
     fireEvent.change(backgroundInput, {
       target: {
