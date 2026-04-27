@@ -282,6 +282,7 @@ describe("notes and deadlines route", () => {
   });
 
   it("fetches the next page of notes", async () => {
+    // The mock branches on the page query so we can verify the tab requests page 2 and swaps the rendered items.
     notesGetMock.mockImplementation(({ query }: { query: { page: string } }) =>
       Promise.resolve({
         ok: true,
@@ -387,6 +388,7 @@ describe("notes and deadlines route", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
 
+    // Cancel should restore the read-only detail dialog, not close the modal entirely.
     expect(screen.queryByLabelText("Title")).not.toBeInTheDocument();
     expect(screen.getAllByText("Distributed systems")).toHaveLength(2);
   });
@@ -580,6 +582,7 @@ describe("notes and deadlines route", () => {
   });
 
   it("renders multiple deadline urgency states", async () => {
+    // Relative dates keep this test focused on urgency buckets instead of hard-coding labels to one fixed calendar day.
     deadlinesGetMock.mockResolvedValue({
       ok: true,
       json: vi.fn().mockResolvedValue({

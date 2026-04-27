@@ -201,6 +201,7 @@ describe("admin discussions route", () => {
       json: vi.fn().mockResolvedValue(listResponse),
     });
 
+    // Successful deletion should refresh the list so moderation state is taken from the server, not local filtering.
     const { Route } = await import("./discussions");
     render(<Route.component />);
 
@@ -224,6 +225,7 @@ describe("admin discussions route", () => {
     });
     deleteCommentMock.mockResolvedValueOnce({ ok: true });
 
+    // Comment deletion is applied in-place to the open sheet, so the count and visible rows must both shrink immediately.
     const { Route } = await import("./discussions");
     render(<Route.component />);
 

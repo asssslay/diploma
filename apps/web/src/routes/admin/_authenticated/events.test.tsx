@@ -191,6 +191,7 @@ describe("admin events route", () => {
   it("creates an event after uploading an image", async () => {
     createEventMock.mockResolvedValue({ ok: true });
 
+    // Admin event creation uploads the image first, then posts the returned public URL in the typed API payload.
     const { Route } = await import("./events");
     render(<Route.component />);
 
@@ -316,6 +317,7 @@ describe("admin events route", () => {
       }),
     );
 
+    // A failed upload should short-circuit creation so the event API never receives a half-complete payload.
     const { Route } = await import("./events");
     render(<Route.component />);
 
@@ -356,6 +358,7 @@ describe("admin events route", () => {
   });
 
   it("fetches the next page when pagination controls are used", async () => {
+    // The second list response stands in for page 2 so we can assert both the next query params and the swapped row set.
     listEventsMock
       .mockResolvedValueOnce({
         ok: true,

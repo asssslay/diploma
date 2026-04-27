@@ -203,6 +203,7 @@ describe("profile route", () => {
   });
 
   it("uploads an avatar and refreshes the profile", async () => {
+    // The second profile response represents the post-upload refetch that should hydrate the new avatar URL.
     getProfileMock
       .mockResolvedValueOnce({
         ok: true,
@@ -292,6 +293,7 @@ describe("profile route", () => {
         },
       },
     });
+    // The failed upload returns a newer gate snapshot; the UI should adopt it even though the upload itself failed.
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue({
@@ -318,6 +320,7 @@ describe("profile route", () => {
   });
 
   it("uploads a background when the gate is unlocked", async () => {
+    // This mirrors the real flow: initial fetch with an unlocked gate, then a refetch that includes the new background URL.
     getProfileMock
       .mockResolvedValueOnce({
         ok: true,

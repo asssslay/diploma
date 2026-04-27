@@ -131,6 +131,7 @@ describe("admin news route", () => {
   it("creates a news post after uploading an image", async () => {
     createNewsMock.mockResolvedValue({ ok: true });
 
+    // News creation follows the same two-step flow as events: upload binary first, then save the returned URL.
     const { Route } = await import("./news");
     render(<Route.component />);
 
@@ -220,6 +221,7 @@ describe("admin news route", () => {
       }),
     );
 
+    // This guards the branch where upload failure prevents the news mutation from firing at all.
     const { Route } = await import("./news");
     render(<Route.component />);
 
@@ -257,6 +259,7 @@ describe("admin news route", () => {
   });
 
   it("fetches the next page when pagination controls are used", async () => {
+    // The second mocked list call represents page 2 and verifies the route forwards the right paging query.
     listNewsMock
       .mockResolvedValueOnce({
         ok: true,
