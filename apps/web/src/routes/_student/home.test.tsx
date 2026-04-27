@@ -197,9 +197,9 @@ describe("student home route", () => {
     render(<Route.component />);
 
     await screen.findByText("Campus Festival");
-    await userEvent.click(screen.getAllByRole("button").find((button) =>
-      button.querySelector("svg"),
-    )!);
+    await userEvent.click(
+      screen.getByRole("button", { name: "Open news search" }),
+    );
     await userEvent.type(screen.getByPlaceholderText("Search news..."), "distributed");
 
     expect(screen.getByText("Distributed Systems Update")).toBeInTheDocument();
@@ -217,9 +217,7 @@ describe("student home route", () => {
     expect(screen.getByText("Hackathon")).toBeInTheDocument();
     expect(screen.queryByText("Workshop")).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getAllByRole("button").find((button) =>
-      button.textContent === "Available"
-    )!);
+    await userEvent.click(screen.getByRole("button", { name: "Available" }));
 
     expect(screen.getByText("Hackathon")).toBeInTheDocument();
     expect(screen.getByText("Design Sprint")).toBeInTheDocument();
