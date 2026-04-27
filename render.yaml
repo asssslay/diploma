@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: diploma-app
+    runtime: node
+    plan: free
+    buildCommand: pnpm install --frozen-lockfile && VITE_SERVER_URL="$RENDER_EXTERNAL_URL" pnpm --filter web build
+    startCommand: CORS_ORIGIN="$RENDER_EXTERNAL_URL" bun apps/server/src/render.ts
+    healthCheckPath: /healthz
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: VITE_SUPABASE_URL
+        sync: false
+      - key: VITE_SUPABASE_ANON_KEY
+        sync: false

@@ -39,6 +39,10 @@ app.get("/", (c) => {
   return c.text("OK");
 });
 
+app.get("/healthz", (c) => {
+  return c.text("OK");
+});
+
 const routes = app
   .route("/api/admin/applications", applications)
   .route("/api/admin/news", adminNews)

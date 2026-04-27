@@ -46,3 +46,39 @@ my-better-t-app/
 - `pnpm run dev:web`: Start only the web application
 - `pnpm run dev:server`: Start only the server
 - `pnpm run check-types`: Check TypeScript types across all apps
+
+## Deploy on Render
+
+This repository now includes a root [`render.yaml`](./render.yaml) Blueprint for Render.
+
+It deploys the project as a single Render web service:
+
+- Render builds the Vite frontend in `apps/web`
+- Bun runs `apps/server/src/render.ts`
+- The Hono server serves the built SPA and handles `/api/*` on the same origin
+
+This avoids cross-service CORS and public-URL wiring for the browser client.
+
+### Setup
+
+1. Push this repository to GitHub, GitLab, or Bitbucket.
+2. In Render, open **New > Blueprint** and select this repository.
+3. Render will detect `render.yaml` and prompt you for the secret env vars marked with `sync: false`.
+4. Create the Blueprint and wait for the first deploy to finish.
+
+### Required environment variables
+
+- `DATABASE_URL`
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `RESEND_API_KEY`
+- `EMAIL_FROM`
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+
+### Notes
+
+- The build command sets `VITE_SERVER_URL` from Render's default `RENDER_EXTERNAL_URL`.
+- The start command sets `CORS_ORIGIN` from the same Render-provided URL.
+- Render's health check is configured to use `/healthz`.
+- This setup follows Render's Blueprint, environment-variable, monorepo, and native Node/Bun runtime docs: [Render Docs](https://render.com/docs).
