@@ -315,14 +315,10 @@ describe("discussion detail route", () => {
     patchDiscussionMock.mockResolvedValue({ ok: true });
 
     const { Route } = await import("./discussions_.$discussionId");
-    const { container } = render(<Route.component />);
+    render(<Route.component />);
 
     await screen.findByRole("heading", { name: "Welcome thread" });
-    const unnamedButtons = Array.from(container.querySelectorAll("button")).filter(
-      (button) => button.textContent?.trim() === "",
-    );
-
-    await userEvent.click(unnamedButtons[0] as HTMLButtonElement);
+    await userEvent.click(screen.getByRole("button", { name: "Edit discussion" }));
     const editFields = screen.getAllByRole("textbox");
     const titleInput = editFields.find(
       (field) => (field as HTMLInputElement).value === "Welcome thread",
@@ -365,14 +361,10 @@ describe("discussion detail route", () => {
     });
 
     const { Route } = await import("./discussions_.$discussionId");
-    const { container } = render(<Route.component />);
+    render(<Route.component />);
 
     await screen.findByText("Nice post");
-    const unnamedButtons = Array.from(container.querySelectorAll("button")).filter(
-      (button) => button.textContent?.trim() === "",
-    );
-
-    await userEvent.click(unnamedButtons[1] as HTMLButtonElement);
+    await userEvent.click(screen.getByRole("button", { name: "Edit comment" }));
     const textboxes = screen.getAllByRole("textbox");
     const dialogTextbox = textboxes[textboxes.length - 1] as HTMLTextAreaElement;
     await userEvent.clear(dialogTextbox);
@@ -402,14 +394,10 @@ describe("discussion detail route", () => {
       });
 
     const { Route } = await import("./discussions_.$discussionId");
-    const { container } = render(<Route.component />);
+    render(<Route.component />);
 
     await screen.findByText("Nice post");
-    const unnamedButtons = Array.from(container.querySelectorAll("button")).filter(
-      (button) => button.textContent?.trim() === "",
-    );
-
-    await userEvent.click(unnamedButtons[2] as HTMLButtonElement);
+    await userEvent.click(screen.getByRole("button", { name: "Delete comment" }));
 
     await waitFor(() => {
       expect(deleteCommentMock).toHaveBeenCalledWith({
