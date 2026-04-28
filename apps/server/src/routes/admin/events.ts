@@ -78,6 +78,7 @@ const app = createRouter()
       db.select({ value: count() }).from(events),
     ]);
 
+    // Registration counts are derived separately so the base event query stays simple and paginated.
     const eventsWithCount = await Promise.all(
       items.map(async (event) => {
         const [reg] = await db
@@ -122,6 +123,7 @@ const app = createRouter()
       throw new HTTPException(404, { message: "Event not found" });
     }
 
+    // Admin detail needs the full registration roster, so it uses a dedicated query instead of list aggregates.
     const registrations = await db
       .select({
         id: eventRegistrations.id,
@@ -160,6 +162,7 @@ const app = createRouter()
       throw new HTTPException(400, { message: "Image must be under 5MB" });
     }
 
+    // Randomized storage paths avoid name collisions and let existing event rows keep stable public URLs.
     const ext = file.name.split(".").pop() ?? "jpg";
     const path = `events/${crypto.randomUUID()}.${ext}`;
     const buffer = await file.arrayBuffer();
@@ -252,6 +255,7 @@ const app = createRouter()
         .where(eq(events.id, id))
         .returning();
 
+      // Reminder rescheduling is decoupled from the main write so event edits are not blocked by provider latency.
       if (titleChanged || dateChanged || locationChanged) {
         rescheduleAllEventReminders(id, newTitle, newEventDate, newLocation).catch(
           (err) =>
@@ -279,6 +283,7 @@ const app = createRouter()
       throw new HTTPException(404, { message: "Event not found" });
     }
 
+    // Cancel queued reminders before deleting so registrations still exist while IDs are being collected.
     await cancelAllEventReminders(id);
 
     await db.delete(events).where(eq(events.id, id));

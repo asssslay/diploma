@@ -141,6 +141,7 @@ describe("admin events routes", () => {
   });
 
   it("returns list data with registration counts", async () => {
+    // The select queue follows the route's list flow: paged events, total count, then per-event registration count.
     selectResults.push(
       [
         {
@@ -237,6 +238,7 @@ describe("admin events routes", () => {
   });
 
   it("reschedules reminders only when date, title, or location changes", async () => {
+    // Only fields that affect reminder copy or timing should trigger the asynchronous bulk reschedule helper.
     selectResults.push([
       {
         id: eventId,
@@ -266,6 +268,7 @@ describe("admin events routes", () => {
   });
 
   it("does not reschedule reminders when timing fields stay unchanged", async () => {
+    // Description-only edits should be persistence-only and must not enqueue reminder churn.
     selectResults.push([
       {
         id: eventId,
@@ -307,6 +310,7 @@ describe("admin events routes", () => {
     selectResults.push([{ id: eventId }]);
     deleteResults.push([]);
 
+    // Delete calls the cancellation helper before the actual row removal so reminder IDs can still be discovered.
     const response = await app.request(`http://localhost/${eventId}`, {
       method: "DELETE",
     });

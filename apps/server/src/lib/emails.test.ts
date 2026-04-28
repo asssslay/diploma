@@ -159,6 +159,59 @@ describe("emails helpers", () => {
     );
   });
 
+  it("keeps deadline and event reminder wrapper metadata distinct", async () => {
+    sendMock
+      .mockResolvedValueOnce({
+        data: { id: "deadline-email-123" },
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: { id: "event-email-456" },
+        error: null,
+      });
+
+    await scheduleDeadlineReminder(
+      "user@example.com",
+      "Algorithms assignment",
+      new Date("2026-04-28T12:00:00.000Z"),
+      24,
+      "op-deadline",
+    );
+    await scheduleEventReminder(
+      "user@example.com",
+      "Hackathon",
+      new Date("2026-04-28T12:00:00.000Z"),
+      "Main Hall",
+      1,
+      "op-event",
+    );
+
+    expect(sendMock).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        tags: [
+          { name: "type", value: "deadline_reminder" },
+          { name: "hours_before", value: "24" },
+        ],
+      }),
+      {
+        idempotencyKey: "deadline-reminder-24h/op-deadline",
+      },
+    );
+    expect(sendMock).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        tags: [
+          { name: "type", value: "event_reminder" },
+          { name: "hours_before", value: "1" },
+        ],
+      }),
+      {
+        idempotencyKey: "event-reminder-1h/op-event",
+      },
+    );
+  });
+
   it("does not throw when sending a regular email fails", async () => {
     sendMock.mockResolvedValue({
       data: null,

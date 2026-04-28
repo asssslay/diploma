@@ -210,6 +210,7 @@ describe("discussion detail route", () => {
 
   it("applies a locked gate after a failed comment creation", async () => {
     createCommentMock.mockResolvedValue({ ok: false });
+    // The API sends back a stricter gate snapshot on failure, and the route should replace its local permissions with it.
     readApiErrorResponseMock.mockResolvedValue({
       error: "Profile incomplete",
       activityGate: {
@@ -238,6 +239,7 @@ describe("discussion detail route", () => {
   });
 
   it("shows the helpful badge and achievement toast when a comment reaction unlocks it", async () => {
+    // This covers the post-reaction payload that upgrades the author badge and triggers the one-time achievement toast.
     reactCommentPostMock.mockResolvedValue({
       ok: true,
       json: vi.fn().mockResolvedValue({
@@ -383,6 +385,7 @@ describe("discussion detail route", () => {
 
   it("refetches the discussion when deleting a comment fails", async () => {
     deleteCommentMock.mockResolvedValue({ ok: false });
+    // The second detail response simulates the recovery fetch used to restore canonical server state after a failed delete.
     detailMock
       .mockResolvedValueOnce({
         ok: true,

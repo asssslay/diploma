@@ -169,6 +169,8 @@ describe("discussions routes additional coverage", () => {
 
   it("returns discussion detail with reaction state and helpful comment markers", async () => {
     updateQueue.push([]);
+    // The select queue mirrors the route's fetch order: discussion, counts, comments, helpful authors,
+    // then per-comment reaction data.
     selectQueue.push(
       [
         {
@@ -262,6 +264,7 @@ describe("discussions routes additional coverage", () => {
   });
 
   it("marks a helpful achievement when a comment author crosses the reaction threshold", async () => {
+    // First helpful-author lookup is pre-insert, second is post-insert, which is what drives achievementEarned.
     selectQueue.push(
       [{ authorId: "author-2", authorName: "Bob" }],
       [],
@@ -338,6 +341,7 @@ describe("discussions routes additional coverage", () => {
   });
 
   it("returns 500 when a comment insert does not produce an id", async () => {
+    // This guards the defensive branch where the insert succeeds nominally but the returning payload is malformed.
     selectQueue.push([{ id: discussionId }]);
     insertQueue.push([{}]);
 
@@ -352,6 +356,7 @@ describe("discussions routes additional coverage", () => {
   });
 
   it("removes a comment reaction and returns the helpful marker state", async () => {
+    // The author still keeps the helpful marker after one reaction is removed, so achievementEarned stays false.
     selectQueue.push(
       [{ authorId: "author-2", authorName: "Bob" }],
       [{ authorId: "author-2" }],

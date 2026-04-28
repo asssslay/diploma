@@ -97,6 +97,7 @@ export function NotesTab() {
   }, [fetchNotes]);
 
   const filteredNotes = useMemo(() => {
+    // Search and sort stay local so paging is still controlled by the server response.
     let result = [...notes];
     if (search) {
       const query = search.toLowerCase();
@@ -146,6 +147,7 @@ export function NotesTab() {
 
   function handleCancelEdit() {
     setErrors({});
+    // If edit started from the detail view, return there instead of dropping the selected note.
     if (activeNote) {
       cancelEdit();
       return;
@@ -167,6 +169,7 @@ export function NotesTab() {
     try {
       const api = await getApiClient();
 
+      // Share one submit path so create and edit stay consistent about validation and pending state.
       if (mode === "edit" && activeNote) {
         const response = await api.api.notes[":id"].$patch({
           param: { id: activeNote.id },

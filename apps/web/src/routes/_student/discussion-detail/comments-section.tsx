@@ -64,6 +64,7 @@ export function CommentsSection({
   }
 
   async function handleEditCommentSubmit() {
+    // Keep edit validation local so the page only deals with the final saved content.
     if (
       !editCommentId ||
       !editCommentText.trim() ||
@@ -172,6 +173,7 @@ export function CommentsSection({
         {viewerActivityGate &&
           !viewerActivityGate.permissions.canCommentOnDiscussions && (
             <div className="mb-4 rounded-lg bg-secondary p-3 text-sm text-muted-foreground">
+              {/* Show the exact missing profile fields next to the composer so the gate is actionable. */}
               <p>{getCommentGateMessage(viewerActivityGate)}</p>
               {missingFields.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-2">

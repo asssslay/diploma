@@ -105,6 +105,7 @@ function DiscussionsPage() {
   const totalPages = Math.ceil(total / pageSize);
 
   const fetchDiscussions = useCallback(async () => {
+    // Category stays server-side because it changes totals; search and sort remain local for snappy UI.
     setIsLoading(true);
     try {
       const api = await getApiClient();
@@ -127,6 +128,7 @@ function DiscussionsPage() {
   useEffect(() => { fetchDiscussions(); }, [fetchDiscussions]);
 
   const filtered = useMemo(() => {
+    // Search and sort run after fetch so pagination still reflects the server-filtered category set.
     let result = [...discussions];
     if (search) {
       const q = search.toLowerCase();
@@ -169,6 +171,7 @@ function DiscussionsPage() {
       if (!res.ok) {
         const apiError = await readApiErrorResponse(res);
         if (apiError?.activityGate) {
+          // Failed creates can come with a stricter gate snapshot, so keep the page copy in sync.
           setViewerActivityGate(apiError.activityGate);
         }
         toast.error(apiError?.error ?? "Failed to create discussion");

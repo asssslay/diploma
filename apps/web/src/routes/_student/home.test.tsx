@@ -217,6 +217,7 @@ describe("student home route", () => {
     expect(screen.getByText("Hackathon")).toBeInTheDocument();
     expect(screen.queryByText("Workshop")).not.toBeInTheDocument();
 
+    // "Available" intentionally keeps partially filled registrations and excludes only events that are already full.
     await userEvent.click(screen.getByRole("button", { name: "Available" }));
 
     expect(screen.getByText("Hackathon")).toBeInTheDocument();
@@ -228,6 +229,7 @@ describe("student home route", () => {
     listNewsMock.mockResolvedValueOnce({ ok: false });
     listEventsMock.mockResolvedValueOnce({ ok: false });
 
+    // News and events load independently, so both failures should surface instead of one hiding the other.
     const { Route } = await import("./home");
     render(<Route.component />);
 

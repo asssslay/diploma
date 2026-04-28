@@ -168,6 +168,7 @@ describe("event reminder helpers", () => {
   });
 
   it("nulls reminder ids instead of rescheduling when notifications are disabled", async () => {
+    // Reschedule always cancels stale ids first; this branch verifies we stop there when user preferences opt out.
     selectWhereResolveMock.mockResolvedValueOnce([
       {
         registrationId: "registration-1",
@@ -254,6 +255,7 @@ describe("event reminder helpers", () => {
   });
 
   it("continues scheduling user event reminders when one registration fails", async () => {
+    // The first registration throws on its 24h reminder, but the second registration should still complete fully.
     selectLimitMock.mockResolvedValueOnce([{ email: "user@example.com" }]);
     selectWhereResolveMock.mockResolvedValueOnce([
       {

@@ -52,6 +52,7 @@ const app = createRouter()
       db.select({ value: count() }).from(events),
     ]);
 
+    // Per-user registration state is derived after the list query so the response can stay personalized.
     const eventsWithMeta = await Promise.all(
       items.map(async (event) => {
         const [[reg], [userReg]] = await Promise.all([
@@ -196,6 +197,7 @@ const app = createRouter()
     const notifyEnabled = settingsRow?.notify ?? true;
 
     const operationId = crypto.randomUUID();
+    // Registration still succeeds when reminders are unavailable; we simply persist null reminder ids.
     const reminders = studentProfile?.email && notifyEnabled
       ? await scheduleBothEventReminders(
           studentProfile.email,
@@ -206,6 +208,7 @@ const app = createRouter()
         )
       : { reminder24hEmailId: null, reminder1hEmailId: null };
 
+    // Insert after scheduling so the stored reminder ids always correspond to the current registration row.
     await db.insert(eventRegistrations).values({
       eventId: id,
       studentId: user.id,
@@ -238,6 +241,7 @@ const app = createRouter()
       throw new HTTPException(404, { message: "Registration not found" });
     }
 
+    // Delete first, then cancel, so an already-removed registration cannot linger in the app on provider failure.
     await cancelBothEventReminders(removed);
 
     return c.json({ success: true, data: { eventId: id, registered: false } });

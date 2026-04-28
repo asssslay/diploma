@@ -119,6 +119,7 @@ describe("deadlines routes", () => {
   });
 
   it("schedules both reminders when a deadline is created with notifications enabled", async () => {
+    // The select queue matches the create route's order: profile email first, then user reminder settings.
     selectResults.push([{ email: "student@example.com" }], [{ notify: true }]);
     scheduleDeadlineReminderMock
       .mockResolvedValueOnce("reminder-24")
@@ -188,6 +189,7 @@ describe("deadlines routes", () => {
   });
 
   it("returns 500 when deadline creation does not return a row", async () => {
+    // This protects the defensive branch where the insert succeeds but the returning payload is unexpectedly empty.
     selectResults.push([{ email: "student@example.com" }], [{ notify: false }]);
     insertResults.push([]);
 
@@ -205,6 +207,7 @@ describe("deadlines routes", () => {
   });
 
   it("re-syncs reminders when a deadline changes", async () => {
+    // Update uses three reads in order: existing deadline, user email, then notification preference.
     selectResults.push(
       [
         {

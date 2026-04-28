@@ -52,6 +52,7 @@ async function scheduleBothReminders(
   dueAt: Date,
   operationId: string,
 ): Promise<ReminderIds> {
+  // The 24h and 1h reminders are always managed as a pair throughout this route.
   const [reminder24hEmailId, reminder1hEmailId] = await Promise.all([
     scheduleDeadlineReminder(email, title, dueAt, 24, operationId),
     scheduleDeadlineReminder(email, title, dueAt, 1, operationId),
@@ -122,6 +123,7 @@ const app = createRouter()
       const notifyEnabled = settingsRow?.notify ?? true;
 
       const operationId = crypto.randomUUID();
+      // Users without email or with reminders disabled still get the deadline row, just without queued emails.
       const reminders: ReminderIds = email && notifyEnabled
         ? await scheduleBothReminders(email, title, dueDate, operationId)
         : { reminder24hEmailId: null, reminder1hEmailId: null };
@@ -185,6 +187,7 @@ const app = createRouter()
         reminder1hEmailId: existing.reminder1hEmailId,
       };
 
+      // Reminder IDs only need to change when the content or timing of the email changes.
       if (titleChanged || dueAtChanged) {
         await cancelBothReminders(existing);
         reminders = { reminder24hEmailId: null, reminder1hEmailId: null };
@@ -250,6 +253,7 @@ const app = createRouter()
         throw new HTTPException(404, { message: "Deadline not found" });
       }
 
+      // Delete first, then cancel provider jobs, so the deadline cannot survive a successful UI delete request.
       console.log(
         `[deadlines] Deleted deadline=${id} reminder24hEmailId=${deleted.reminder24hEmailId ?? "null"} reminder1hEmailId=${deleted.reminder1hEmailId ?? "null"}`,
       );

@@ -57,6 +57,7 @@ const DISCUSSION_CREATION_REQUIRES_COMMENT =
   "DISCUSSION_CREATION_REQUIRES_COMMENT" as const;
 const HELPFUL_REACTION_THRESHOLD = 10;
 
+// Finds authors whose comments have reached the helpful-reaction threshold.
 async function getHelpfulAuthorIds(authorIds: string[]) {
   if (authorIds.length === 0) {
     return new Set<string>();
@@ -78,7 +79,9 @@ async function getHelpfulAuthorIds(authorIds: string[]) {
   return new Set(rows.map((row) => row.authorId));
 }
 
+// Loads author metadata for one comment so reaction endpoints can report badge changes.
 async function getCommentAuthor(commentId: string) {
+  // Reuse one lookup so the reaction endpoints can both report helpful-marker changes.
   const [comment] = await db
     .select({
       authorId: discussionComments.authorId,
@@ -105,6 +108,7 @@ const app = createRouter()
     const offset = (page - 1) * pageSize;
     const user = c.get("user");
 
+    // Category filtering changes the total result set, so it stays in the primary SQL query.
     const where = category ? eq(discussions.category, category) : undefined;
 
     const [items, [total], viewerActivityGate] = await Promise.all([
@@ -130,6 +134,7 @@ const app = createRouter()
       getActivityGateForUser(user.id),
     ]);
 
+    // Counts are fetched separately because the list view needs cheap aggregates, not full comment data.
     const itemsWithCounts = await Promise.all(
       items.map(async (item) => {
         const [[comments], [reactions]] = await Promise.all([
@@ -168,6 +173,7 @@ const app = createRouter()
       const { id } = c.req.valid("param");
       const user = c.get("user");
 
+      // Views are counted before the detail fetch so the returned payload already reflects the latest total.
       await db
         .update(discussions)
         .set({ viewCount: sql`${discussions.viewCount} + 1` })
@@ -212,6 +218,7 @@ const app = createRouter()
           getActivityGateForUser(user.id),
         ]);
 
+      // Comments stay as a second query because the detail view needs author metadata and per-user reaction state.
       const comments = await db
         .select({
           id: discussionComments.id,
@@ -229,6 +236,7 @@ const app = createRouter()
       const authorIds = [
         ...new Set(comments.map((comment) => comment.authorId)),
       ];
+      // Helpful markers are an author-level badge, so compute them once and fan them out to each comment row.
       const helpfulAuthorIds = await getHelpfulAuthorIds(authorIds);
 
       const commentsWithReactions = await Promise.all(
@@ -279,6 +287,7 @@ const app = createRouter()
       const user = c.get("user");
       const activityGate = await getActivityGateForUser(user.id);
 
+      // Discussion creation is intentionally unlocked by participation rather than profile completeness alone.
       if (!activityGate.permissions.canCreateDiscussions) {
         return c.json(
           {
@@ -345,6 +354,7 @@ const app = createRouter()
       const { id } = c.req.valid("param");
       const user = c.get("user");
 
+      // Reactions are modeled as unique rows, so "already reacted" is a conflict rather than a no-op success.
       const [existing] = await db
         .select({ id: discussionReactions.id })
         .from(discussionReactions)
@@ -405,6 +415,7 @@ const app = createRouter()
       const { content } = c.req.valid("json");
       const activityGate = await getActivityGateForUser(user.id);
 
+      // Commenting is blocked until profile requirements are met so the response returns the latest gate snapshot.
       if (!activityGate.permissions.canCommentOnDiscussions) {
         return c.json(
           {
@@ -437,6 +448,7 @@ const app = createRouter()
         throw new HTTPException(500, { message: "Failed to create comment" });
       }
 
+      // Read the inserted row back with joins so the client receives the same shape as the detail endpoint.
       const [comment] = await db
         .select({
           id: discussionComments.id,
@@ -581,6 +593,7 @@ const app = createRouter()
 
       await db.insert(commentReactions).values({ commentId, userId: user.id });
 
+      // Recompute after insert because crossing the threshold is what drives the UI badge and toast copy.
       const authorHasHelpfulMarker = (
         await getHelpfulAuthorIds([comment.authorId])
       ).has(comment.authorId);
@@ -624,6 +637,7 @@ const app = createRouter()
         throw new HTTPException(404, { message: "Reaction not found" });
       }
 
+      // Removing one reaction can also drop the author back below the helpful threshold.
       const authorHasHelpfulMarker = (
         await getHelpfulAuthorIds([comment.authorId])
       ).has(comment.authorId);
