@@ -1,10 +1,15 @@
 import { zValidator } from "@hono/zod-validator";
 import { HTTPException } from "hono/http-exception";
-import { count, desc, eq, sql } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@my-better-t-app/db";
 import { newsPosts, profiles } from "@my-better-t-app/db/schema";
 import { createRouter } from "@/lib/app";
+import {
+  countNewsPostsTotal,
+  createNewsExcerpt,
+  newsListTotalCount,
+} from "@/lib/news-list";
 import { auth } from "@/middleware/auth";
 import { validationHook } from "@/lib/zod-hook";
 
@@ -24,32 +29,35 @@ const app = createRouter()
     const { page, pageSize } = c.req.valid("query");
     const offset = (page - 1) * pageSize;
 
-    const [items, [total]] = await Promise.all([
-      db
-        .select({
-          id: newsPosts.id,
-          title: newsPosts.title,
-          content: newsPosts.content,
-          imageUrl: newsPosts.imageUrl,
-          authorName: profiles.fullName,
-          publishedAt: newsPosts.publishedAt,
-          viewCount: newsPosts.viewCount,
-          createdAt: newsPosts.createdAt,
-          updatedAt: newsPosts.updatedAt,
-        })
-        .from(newsPosts)
-        .leftJoin(profiles, eq(newsPosts.authorId, profiles.id))
-        .orderBy(desc(newsPosts.publishedAt))
-        .limit(pageSize)
-        .offset(offset),
+    const rows = await db
+      .select({
+        id: newsPosts.id,
+        title: newsPosts.title,
+        content: newsPosts.content,
+        imageUrl: newsPosts.imageUrl,
+        authorName: profiles.fullName,
+        publishedAt: newsPosts.publishedAt,
+        viewCount: newsPosts.viewCount,
+        createdAt: newsPosts.createdAt,
+        updatedAt: newsPosts.updatedAt,
+        totalCount: newsListTotalCount,
+      })
+      .from(newsPosts)
+      .leftJoin(profiles, eq(newsPosts.authorId, profiles.id))
+      .orderBy(desc(newsPosts.publishedAt))
+      .limit(pageSize)
+      .offset(offset);
 
-      db.select({ value: count() }).from(newsPosts),
-    ]);
+    const total = rows[0]?.totalCount ?? await countNewsPostsTotal();
+    const items = rows.map(({ content, totalCount: _totalCount, ...row }) => ({
+      ...row,
+      excerpt: createNewsExcerpt(content),
+    }));
 
     return c.json({
       success: true,
       data: items,
-      total: total?.value ?? 0,
+      total,
       page,
       pageSize,
     });

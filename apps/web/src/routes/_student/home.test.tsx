@@ -103,7 +103,7 @@ const newsResponse = {
     {
       id: "news-1",
       title: "Distributed Systems Update",
-      content: "Cluster maintenance window",
+      excerpt: "Cluster maintenance window",
       publishedAt: "2030-05-01T12:00:00.000Z",
       createdAt: "2030-05-01T12:00:00.000Z",
       updatedAt: "2030-05-01T12:00:00.000Z",
@@ -111,7 +111,7 @@ const newsResponse = {
     {
       id: "news-2",
       title: "Campus Festival",
-      content: "Join us this weekend",
+      excerpt: "Join us this weekend",
       publishedAt: "2030-05-03T12:00:00.000Z",
       createdAt: "2030-05-03T12:00:00.000Z",
       updatedAt: "2030-05-04T12:00:00.000Z",

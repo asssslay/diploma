@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Hono } from "hono";
+import type { AppEnv } from "@/lib/app";
 
-const { getUserMock, singleMock, eqMock, selectMock, fromMock } = vi.hoisted(
+const { getClaimsMock, singleMock, fromMock } = vi.hoisted(
   () => {
     const singleMock = vi.fn();
     const eqMock = vi.fn(() => ({ single: singleMock }));
@@ -9,10 +10,8 @@ const { getUserMock, singleMock, eqMock, selectMock, fromMock } = vi.hoisted(
     const fromMock = vi.fn(() => ({ select: selectMock }));
 
     return {
-      getUserMock: vi.fn(),
+      getClaimsMock: vi.fn(),
       singleMock,
-      eqMock,
-      selectMock,
       fromMock,
     };
   },
@@ -21,7 +20,7 @@ const { getUserMock, singleMock, eqMock, selectMock, fromMock } = vi.hoisted(
 vi.mock("@my-better-t-app/db/supabase-admin", () => ({
   supabaseAdmin: {
     auth: {
-      getUser: getUserMock,
+      getClaims: getClaimsMock,
     },
     from: fromMock,
   },
@@ -30,7 +29,7 @@ vi.mock("@my-better-t-app/db/supabase-admin", () => ({
 import { adminOnly, auth } from "./auth";
 
 function createApp() {
-  const app = new Hono();
+  const app = new Hono<AppEnv>();
 
   app.use("/auth", auth);
   app.get("/auth", (c) => c.json({ success: true, user: c.get("user") }));
@@ -57,7 +56,7 @@ describe("auth middleware", () => {
   });
 
   it("returns 401 for invalid tokens", async () => {
-    getUserMock.mockResolvedValue({ data: { user: null }, error: new Error("bad") });
+    getClaimsMock.mockResolvedValue({ data: null, error: new Error("bad") });
 
     const response = await createApp().request("http://localhost/auth", {
       headers: { Authorization: "Bearer invalid-token" },
@@ -67,8 +66,8 @@ describe("auth middleware", () => {
   });
 
   it("attaches the authenticated user to the context", async () => {
-    getUserMock.mockResolvedValue({
-      data: { user: { id: "user-1", email: "user@example.com" } },
+    getClaimsMock.mockResolvedValue({
+      data: { claims: { sub: "user-1", email: "user@example.com" } },
       error: null,
     });
 
@@ -84,8 +83,8 @@ describe("auth middleware", () => {
   });
 
   it("returns 403 for non-admin profiles", async () => {
-    getUserMock.mockResolvedValue({
-      data: { user: { id: "user-1" } },
+    getClaimsMock.mockResolvedValue({
+      data: { claims: { sub: "user-1" } },
       error: null,
     });
     singleMock.mockResolvedValue({
@@ -104,8 +103,8 @@ describe("auth middleware", () => {
   });
 
   it("allows admins through and attaches the profile", async () => {
-    getUserMock.mockResolvedValue({
-      data: { user: { id: "admin-1" } },
+    getClaimsMock.mockResolvedValue({
+      data: { claims: { sub: "admin-1" } },
       error: null,
     });
     singleMock.mockResolvedValue({
@@ -120,6 +119,23 @@ describe("auth middleware", () => {
     await expect(response.json()).resolves.toEqual({
       success: true,
       profile: { id: "admin-1", role: "admin", status: "approved" },
+    });
+  });
+
+  it("returns 401 when verified claims are missing a subject", async () => {
+    getClaimsMock.mockResolvedValue({
+      data: { claims: { email: "user@example.com" } },
+      error: null,
+    });
+
+    const response = await createApp().request("http://localhost/auth", {
+      headers: { Authorization: "Bearer token-without-sub" },
+    });
+
+    expect(response.status).toBe(401);
+    await expect(response.json()).resolves.toEqual({
+      success: false,
+      error: "Missing or invalid authorization token",
     });
   });
 });

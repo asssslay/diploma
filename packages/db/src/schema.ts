@@ -217,6 +217,8 @@ export const newsPosts = pgTable(
       .notNull(),
   },
   (table) => [
+    index("news_posts_published_at_idx").on(table.publishedAt),
+
     foreignKey({
       columns: [table.authorId],
       foreignColumns: [profiles.id],
