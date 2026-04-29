@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "@my-better-t-app/db/supabase-admin";
 import { createAppMiddleware } from "@/lib/app";
+import { verifyAccessToken } from "@/lib/verify-access-token";
 
 export const auth = createAppMiddleware(async (c, next) => {
   const header = c.req.header("Authorization");
@@ -12,16 +13,16 @@ export const auth = createAppMiddleware(async (c, next) => {
   }
 
   const token = header.slice(7);
-  const { data, error } = await supabaseAdmin.auth.getUser(token);
+  const user = await verifyAccessToken(token);
 
-  if (error || !data.user) {
+  if (!user) {
     return c.json(
       { success: false, error: "Missing or invalid authorization token" },
       401,
     );
   }
 
-  c.set("user", data.user);
+  c.set("user", user);
   await next();
 });
 

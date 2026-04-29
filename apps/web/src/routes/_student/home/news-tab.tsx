@@ -15,7 +15,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { getApiClient } from "@/lib/api";
 import { formatDate, isEdited } from "@/lib/utils";
 
-import { truncate } from "./helpers";
 import type { NewsListData, NewsPost } from "./types";
 
 type NewsTabState = {
@@ -200,7 +199,7 @@ export function NewsTab({
                 <div className="min-w-0 flex-1">
                   <h3 className="truncate text-base font-bold">{post.title}</h3>
                   <p className="mt-1 line-clamp-1 text-sm text-muted-foreground">
-                    {truncate(post.content, 120)}
+                    {post.excerpt}
                   </p>
                   <p className="mt-1.5 text-xs text-muted-foreground/70">
                     {formatDate(post.publishedAt, { month: "long" })}

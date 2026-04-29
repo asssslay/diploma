@@ -128,10 +128,9 @@ describe("admin news routes", () => {
   });
 
   it("lists news posts with pagination metadata", async () => {
-    selectResults.push(
-      [{ id: postId, title: "Campus update" }],
-      [{ value: 1 }],
-    );
+    selectResults.push([
+      { id: postId, title: "Campus update", totalCount: 1 },
+    ]);
 
     const response = await app.request("http://localhost/?page=1&pageSize=10");
 

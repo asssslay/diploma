@@ -79,17 +79,15 @@ describe("news routes", () => {
   });
 
   it("returns paginated news items with a total count", async () => {
-    selectResults.push(
-      [
-        {
-          id: postId,
-          title: "Campus update",
-          content: "Semester starts soon",
-          authorName: "Admin",
-        },
-      ],
-      [{ value: 1 }],
-    );
+    selectResults.push([
+      {
+        id: postId,
+        title: "Campus update",
+        content: "Semester starts soon",
+        authorName: "Admin",
+        totalCount: 1,
+      },
+    ]);
 
     const response = await app.request("http://localhost/?page=1&pageSize=10", {
       method: "GET",
@@ -99,7 +97,24 @@ describe("news routes", () => {
     await expect(response.json()).resolves.toMatchObject({
       success: true,
       total: 1,
-      data: [{ id: postId }],
+      data: [{ id: postId, excerpt: "Semester starts soon" }],
+    });
+  });
+
+  it("returns an empty page with the exact total when the page is out of range", async () => {
+    selectResults.push([], [{ value: 1 }]);
+
+    const response = await app.request("http://localhost/?page=2&pageSize=10", {
+      method: "GET",
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      success: true,
+      total: 1,
+      page: 2,
+      pageSize: 10,
+      data: [],
     });
   });
 

@@ -18,7 +18,9 @@ export type { ActivityGate, RequiredProfileField } from "@/lib/activity-gate";
 
 const app = new Hono();
 
-app.use(logger());
+if (env.NODE_ENV === "development") {
+  app.use(logger());
+}
 app.use(
   "/*",
   cors({
