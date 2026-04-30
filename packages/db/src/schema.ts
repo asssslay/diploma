@@ -641,6 +641,8 @@ export const notes = pgTable(
       name: "notes_user_id_profiles_fk",
     }).onDelete("cascade"),
 
+    index("notes_user_id_updated_at_idx").on(table.userId, table.updatedAt),
+
     pgPolicy("owner_read_own_notes", {
       for: "select",
       to: authenticatedRole,
