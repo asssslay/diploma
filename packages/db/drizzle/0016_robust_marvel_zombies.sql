@@ -1,0 +1,1 @@
+CREATE INDEX "notes_user_id_updated_at_idx" ON "notes" USING btree ("user_id","updated_at");
