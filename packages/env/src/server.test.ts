@@ -8,6 +8,7 @@ function getRuntimeEnv(overrides: Record<string, string | undefined> = {}) {
     SUPABASE_SERVICE_ROLE_KEY: "service-role-key",
     RESEND_API_KEY: "resend-api-key",
     EMAIL_FROM: "noreply@example.com",
+    MONITORING_TOKEN: "monitoring-token",
     NODE_ENV: "test",
     ...overrides,
   };
@@ -35,7 +36,15 @@ describe("createServerEnv", () => {
     const env = createServerEnv(getRuntimeEnv());
 
     expect(env.CORS_ORIGIN).toBe("https://example.com");
+    expect(env.MONITORING_TOKEN).toBe("monitoring-token");
     expect(env.NODE_ENV).toBe("test");
+  });
+
+  it("allows monitoring token to be omitted", async () => {
+    const { createServerEnv } = await import("./server");
+    const env = createServerEnv(getRuntimeEnv({ MONITORING_TOKEN: undefined }));
+
+    expect(env.MONITORING_TOKEN).toBeUndefined();
   });
 
   it("rejects invalid urls", async () => {
