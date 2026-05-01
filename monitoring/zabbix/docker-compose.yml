@@ -1,0 +1,53 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: diploma-zabbix-postgres
+    environment:
+      POSTGRES_DB: zabbix
+      POSTGRES_PASSWORD: zabbix
+      POSTGRES_USER: zabbix
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zabbix -d zabbix"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    volumes:
+      - zabbix-postgres:/var/lib/postgresql/data
+
+  zabbix-server:
+    image: zabbix/zabbix-server-pgsql:alpine-7.4-latest
+    container_name: diploma-zabbix-server
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_SERVER_HOST: postgres
+      POSTGRES_DB: zabbix
+      POSTGRES_PASSWORD: zabbix
+      POSTGRES_USER: zabbix
+    ports:
+      - "10051:10051"
+    restart: unless-stopped
+
+  zabbix-web:
+    image: zabbix/zabbix-web-nginx-pgsql:alpine-7.4-latest
+    container_name: diploma-zabbix-web
+    depends_on:
+      postgres:
+        condition: service_healthy
+      zabbix-server:
+        condition: service_started
+    environment:
+      DB_SERVER_HOST: postgres
+      PHP_TZ: Europe/Kiev
+      POSTGRES_DB: zabbix
+      POSTGRES_PASSWORD: zabbix
+      POSTGRES_USER: zabbix
+      ZBX_SERVER_HOST: zabbix-server
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
+volumes:
+  zabbix-postgres:

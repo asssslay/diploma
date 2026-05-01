@@ -7,8 +7,10 @@ function makeEmptyRoute() {
 }
 
 describe("app entrypoint", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.resetModules();
+    const { resetTelemetryStateForTests } = await import("./lib/telemetry");
+    resetTelemetryStateForTests();
   });
 
   it("responds to the root health check and applies cors headers", async () => {
@@ -96,6 +98,65 @@ describe("app entrypoint", () => {
     await expect(response.json()).resolves.toEqual({
       success: false,
       error: "Internal server error",
+    });
+  });
+
+  it("returns telemetry for authorized monitoring requests", async () => {
+    vi.doMock("@my-better-t-app/env/server", () => ({
+      env: { CORS_ORIGIN: "*", MONITORING_TOKEN: "monitoring-secret" },
+    }));
+    vi.doMock("@/routes/admin/applications", () => ({ default: makeEmptyRoute() }));
+    vi.doMock("@/routes/admin/news", () => ({ default: makeEmptyRoute() }));
+    vi.doMock("@/routes/admin/events", () => ({ default: makeEmptyRoute() }));
+    vi.doMock("@/routes/admin/discussions", () => ({ default: makeEmptyRoute() }));
+    vi.doMock("@/routes/news", () => ({ default: makeEmptyRoute() }));
+    vi.doMock("@/routes/events", () => ({ default: makeEmptyRoute() }));
+    vi.doMock("@/routes/discussions", () => ({ default: makeEmptyRoute() }));
+    vi.doMock("@/routes/deadlines", () => ({ default: makeEmptyRoute() }));
+    vi.doMock("@/routes/notes", () => ({ default: makeEmptyRoute() }));
+    vi.doMock("@/routes/profile", () => ({ default: makeEmptyRoute() }));
+    vi.doMock("@/routes/settings", () => ({ default: makeEmptyRoute() }));
+
+    const { default: app } = await import("./index");
+
+    await app.request("http://localhost/");
+    const response = await app.request("http://localhost/api/monitoring/telemetry", {
+      headers: { Authorization: "Bearer monitoring-secret" },
+    });
+
+    expect(response.status).toBe(200);
+
+    const body = await response.json();
+    expect(body.status).toBe("ok");
+    expect(body.requestLatency.sampleCount).toBe(1);
+    expect(body.requestLatency.avgMs).toEqual(expect.any(Number));
+    expect(body.process.cpu.utilizationPercent).toEqual(expect.any(Number));
+    expect(body.process.memory.rssBytes).toEqual(expect.any(Number));
+  });
+
+  it("rejects monitoring requests without a valid bearer token", async () => {
+    vi.doMock("@my-better-t-app/env/server", () => ({
+      env: { CORS_ORIGIN: "*", MONITORING_TOKEN: "monitoring-secret" },
+    }));
+    vi.doMock("@/routes/admin/applications", () => ({ default: makeEmptyRoute() }));
+    vi.doMock("@/routes/admin/news", () => ({ default: makeEmptyRoute() }));
+    vi.doMock("@/routes/admin/events", () => ({ default: makeEmptyRoute() }));
+    vi.doMock("@/routes/admin/discussions", () => ({ default: makeEmptyRoute() }));
+    vi.doMock("@/routes/news", () => ({ default: makeEmptyRoute() }));
+    vi.doMock("@/routes/events", () => ({ default: makeEmptyRoute() }));
+    vi.doMock("@/routes/discussions", () => ({ default: makeEmptyRoute() }));
+    vi.doMock("@/routes/deadlines", () => ({ default: makeEmptyRoute() }));
+    vi.doMock("@/routes/notes", () => ({ default: makeEmptyRoute() }));
+    vi.doMock("@/routes/profile", () => ({ default: makeEmptyRoute() }));
+    vi.doMock("@/routes/settings", () => ({ default: makeEmptyRoute() }));
+
+    const { default: app } = await import("./index");
+    const response = await app.request("http://localhost/api/monitoring/telemetry");
+
+    expect(response.status).toBe(401);
+    await expect(response.json()).resolves.toEqual({
+      success: false,
+      error: "Unauthorized",
     });
   });
 });

@@ -3,10 +3,16 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
 import { logger } from "hono/logger";
+import { performance } from "node:perf_hooks";
 import applications from "@/routes/admin/applications";
 import adminNews from "@/routes/admin/news";
 import adminEvents from "@/routes/admin/events";
 import adminDiscussions from "@/routes/admin/discussions";
+import {
+  getTelemetrySnapshot,
+  recordRequestDuration,
+  shouldTrackRequest,
+} from "@/lib/telemetry";
 import news from "@/routes/news";
 import events from "@/routes/events";
 import discussionsRoute from "@/routes/discussions";
@@ -18,6 +24,14 @@ export type { ActivityGate, RequiredProfileField } from "@/lib/activity-gate";
 
 const app = new Hono();
 
+function hasMonitoringAccess(authorizationHeader: string | undefined) {
+  if (!env.MONITORING_TOKEN) {
+    return true;
+  }
+
+  return authorizationHeader === `Bearer ${env.MONITORING_TOKEN}`;
+}
+
 if (env.NODE_ENV === "development") {
   app.use(logger());
 }
@@ -28,6 +42,17 @@ app.use(
     allowMethods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
   }),
 );
+app.use("*", async (c, next) => {
+  const startedAt = performance.now();
+
+  try {
+    await next();
+  } finally {
+    if (shouldTrackRequest(c.req.path)) {
+      recordRequestDuration(performance.now() - startedAt);
+    }
+  }
+});
 
 app.onError((err, c) => {
   if (err instanceof HTTPException) {
@@ -43,6 +68,14 @@ app.get("/", (c) => {
 
 app.get("/healthz", (c) => {
   return c.text("OK");
+});
+
+app.get("/api/monitoring/telemetry", (c) => {
+  if (!hasMonitoringAccess(c.req.header("authorization"))) {
+    return c.json({ success: false, error: "Unauthorized" }, 401);
+  }
+
+  return c.json(getTelemetrySnapshot());
 });
 
 const routes = app
