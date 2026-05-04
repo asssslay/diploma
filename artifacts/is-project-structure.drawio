@@ -1,0 +1,76 @@
+<mxfile host="app.diagrams.net" modified="2026-05-01T15:10:00.000Z" agent="Codex" version="26.2.15">
+  <diagram id="is-project-structure" name="Уявлення структури проєкту ІС">
+    <mxGraphModel dx="1800" dy="1100" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1920" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="repo" value="Уявлення структури проєкту ІС&#xa;Монорепозиторій на pnpm Workspaces + Turborepo" style="swimlane;rounded=1;whiteSpace=wrap;html=1;startSize=52;fillColor=#f8f9fb;strokeColor=#6b7280;fontSize=22;fontStyle=1;horizontal=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="1520" height="1040" as="geometry" />
+        </mxCell>
+        <mxCell id="rootConfig" value="&lt;b&gt;Кореневі файли конфігурації&lt;/b&gt;&lt;br/&gt;package.json&lt;br/&gt;pnpm-workspace.yaml&lt;br/&gt;turbo.json&lt;br/&gt;tsconfig.json&lt;br/&gt;&lt;font color=&quot;#4b5563&quot;&gt;workspaces: apps/*, packages/*&lt;/font&gt;&lt;br/&gt;&lt;font color=&quot;#4b5563&quot;&gt;tsconfig -&amp;gt; @my-better-t-app/config/tsconfig.base.json&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=15;align=left;verticalAlign=top;spacing=12;" vertex="1" parent="repo">
+          <mxGeometry x="30" y="80" width="350" height="190" as="geometry" />
+        </mxCell>
+        <mxCell id="orchestrator" value="&lt;b&gt;Координаційний рівень&lt;/b&gt;&lt;br/&gt;pnpm керує workspace-пакетами&lt;br/&gt;Turbo запускає build, check-types, test, dev&lt;br/&gt;&lt;font color=&quot;#4b5563&quot;&gt;Єдина точка керування задачами збірки та розробки&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=16;align=center;verticalAlign=middle;spacing=10;" vertex="1" parent="repo">
+          <mxGeometry x="430" y="80" width="660" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="appsContainer" value="Фізичний рівень: apps/ (вебзастосунки)" style="swimlane;rounded=1;whiteSpace=wrap;html=1;startSize=36;fillColor=#eef5ff;strokeColor=#4f81bd;fontSize=18;fontStyle=1;" vertex="1" parent="repo">
+          <mxGeometry x="30" y="300" width="700" height="610" as="geometry" />
+        </mxCell>
+        <mxCell id="packagesContainer" value="Фізичний рівень: packages/ (спільні бібліотеки)" style="swimlane;rounded=1;whiteSpace=wrap;html=1;startSize=36;fillColor=#eefaf0;strokeColor=#6aa84f;fontSize=18;fontStyle=1;" vertex="1" parent="repo">
+          <mxGeometry x="790" y="300" width="700" height="610" as="geometry" />
+        </mxCell>
+        <mxCell id="webApp" value="&lt;b&gt;apps/web&lt;/b&gt;&lt;br/&gt;Роль: клієнтський вебзастосунок (Vite + React)&lt;br/&gt;&lt;font color=&quot;#4b5563&quot;&gt;Логічний пакет TypeScript: web&lt;/font&gt;&lt;br/&gt;&lt;font color=&quot;#4b5563&quot;&gt;src/: routes, components, context, lib&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d9e8fb;strokeColor=#4f81bd;fontSize=15;align=left;verticalAlign=top;spacing=12;" vertex="1" parent="appsContainer">
+          <mxGeometry x="30" y="60" width="640" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="serverApp" value="&lt;b&gt;apps/server&lt;/b&gt;&lt;br/&gt;Роль: серверний застосунок (Bun + Hono)&lt;br/&gt;&lt;font color=&quot;#4b5563&quot;&gt;Логічний пакет TypeScript: server&lt;/font&gt;&lt;br/&gt;&lt;font color=&quot;#4b5563&quot;&gt;src/: routes, middleware, lib, render.ts&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#cfe2ff;strokeColor=#3d6ca8;fontSize=15;align=left;verticalAlign=top;spacing=12;" vertex="1" parent="appsContainer">
+          <mxGeometry x="30" y="310" width="640" height="230" as="geometry" />
+        </mxCell>
+        <mxCell id="configPkg" value="&lt;b&gt;packages/config&lt;/b&gt;&lt;br/&gt;Роль: спільна конфігурація TypeScript&lt;br/&gt;&lt;font color=&quot;#4b5563&quot;&gt;Логічний namespace: @my-better-t-app/config&lt;/font&gt;&lt;br/&gt;&lt;font color=&quot;#4b5563&quot;&gt;Ключовий артефакт: tsconfig.base.json&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5ead2;strokeColor=#6aa84f;fontSize=15;align=left;verticalAlign=top;spacing=12;" vertex="1" parent="packagesContainer">
+          <mxGeometry x="30" y="50" width="640" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="envPkg" value="&lt;b&gt;packages/env&lt;/b&gt;&lt;br/&gt;Роль: типобезпечна конфігурація середовища&lt;br/&gt;&lt;font color=&quot;#4b5563&quot;&gt;Логічний namespace: @my-better-t-app/env&lt;/font&gt;&lt;br/&gt;&lt;font color=&quot;#4b5563&quot;&gt;Експорти: ./server, ./web&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e2f0d9;strokeColor=#6aa84f;fontSize=15;align=left;verticalAlign=top;spacing=12;" vertex="1" parent="packagesContainer">
+          <mxGeometry x="30" y="220" width="640" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="dbPkg" value="&lt;b&gt;packages/db&lt;/b&gt;&lt;br/&gt;Роль: шар доступу до даних та схема БД&lt;br/&gt;&lt;font color=&quot;#4b5563&quot;&gt;Логічний namespace: @my-better-t-app/db&lt;/font&gt;&lt;br/&gt;&lt;font color=&quot;#4b5563&quot;&gt;Експорти: ., ./schema, ./supabase-admin&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#cfe8cf;strokeColor=#5c913b;fontSize=15;align=left;verticalAlign=top;spacing=12;" vertex="1" parent="packagesContainer">
+          <mxGeometry x="30" y="420" width="640" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="levelsNote" value="&lt;b&gt;Розмежування модулів виконується на двох рівнях:&lt;/b&gt; 1) фізичному - директорії та workspace-пакети монорепозиторію; 2) логічному - імена пакетів та TypeScript-модулі/експорти всередині кожного пакета.&#xa;Пунктирні стрілки відображають конфігурацію й координацію workspace, суцільні - залежності між пакетами." style="shape=note;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=15;align=left;verticalAlign=middle;spacing=12;" vertex="1" parent="repo">
+          <mxGeometry x="30" y="930" width="1460" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;strokeColor=#6b7280;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="rootConfig" target="orchestrator">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;strokeColor=#6b7280;endArrow=block;endFill=1;exitX=0.35;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="orchestrator" target="appsContainer">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;strokeColor=#6b7280;endArrow=block;endFill=1;exitX=0.65;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="orchestrator" target="packagesContainer">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" value="workspace dependency" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#1565c0;fontColor=#1565c0;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="webApp" target="serverApp">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#1565c0;endArrow=block;endFill=1;exitX=1;exitY=0.35;entryX=0;entryY=0.5;" edge="1" parent="1" source="webApp" target="envPkg">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#1565c0;endArrow=block;endFill=1;exitX=1;exitY=0.18;entryX=0;entryY=0.5;" edge="1" parent="1" source="serverApp" target="configPkg">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#1565c0;endArrow=block;endFill=1;exitX=1;exitY=0.45;entryX=0;entryY=0.5;" edge="1" parent="1" source="serverApp" target="envPkg">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#1565c0;endArrow=block;endFill=1;exitX=1;exitY=0.75;entryX=0;entryY=0.5;" edge="1" parent="1" source="serverApp" target="dbPkg">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#2e7d32;endArrow=block;endFill=1;exitX=0.5;exitY=0;entryX=0.5;entryY=1;" edge="1" parent="1" source="envPkg" target="configPkg">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#2e7d32;endArrow=block;endFill=1;exitX=0.5;exitY=0;entryX=0.5;entryY=1;" edge="1" parent="1" source="dbPkg" target="envPkg">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#2e7d32;endArrow=block;endFill=1;exitX=0.35;exitY=0;entryX=0.65;entryY=1;" edge="1" parent="1" source="dbPkg" target="configPkg">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

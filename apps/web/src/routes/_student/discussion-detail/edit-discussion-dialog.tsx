@@ -60,18 +60,20 @@ export function EditDiscussionDialog({
             <Label>Category</Label>
             <div className="flex flex-wrap gap-2">
               {DISCUSSION_CATEGORIES.map((item) => (
-                <button
+                <Button
                   key={item}
                   type="button"
                   onClick={() => onCategoryChange(item)}
-                  className={`h-8 rounded-lg px-3 text-sm font-medium transition-colors ${
+                  variant={category === item ? "default" : "secondary"}
+                  size="sm"
+                  className={`rounded-lg text-sm ${
                     category === item
                       ? "bg-primary text-primary-foreground"
                       : "bg-secondary text-muted-foreground"
                   }`}
                 >
                   {item}
-                </button>
+                </Button>
               ))}
             </div>
           </div>

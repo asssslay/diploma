@@ -82,3 +82,15 @@ This avoids cross-service CORS and public-URL wiring for the browser client.
 - The start command sets `CORS_ORIGIN` from the same Render-provided URL.
 - Render's health check is configured to use `/healthz`.
 - This setup follows Render's Blueprint, environment-variable, monorepo, and native Node/Bun runtime docs: [Render Docs](https://render.com/docs).
+
+## Monitoring
+
+Zabbix monitoring assets are available in [monitoring/zabbix/README.md](/D:/Projects/diploma/monitoring/zabbix/README.md).
+
+The server now exposes a protected telemetry endpoint at `/api/monitoring/telemetry` for:
+
+- rolling average response time under load
+- process RSS memory consumption
+- normalized CPU utilization
+
+Set `MONITORING_TOKEN` in the runtime environment before enabling Zabbix polling.

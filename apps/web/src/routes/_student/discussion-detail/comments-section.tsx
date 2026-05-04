@@ -127,31 +127,34 @@ export function CommentsSection({
                   </div>
                   {isCommentOwner && (
                     <div className="flex gap-1">
-                      <button
-                        type="button"
+                      <Button
                         aria-label="Edit comment"
+                        variant="ghost"
+                        size="icon-xs"
                         onClick={() => openEditComment(comment)}
-                        className="flex size-6 items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground"
+                        className="text-muted-foreground hover:bg-secondary hover:text-foreground"
                       >
                         <Pencil className="size-3" />
-                      </button>
-                      <button
-                        type="button"
+                      </Button>
+                      <Button
                         aria-label="Delete comment"
+                        variant="ghost"
+                        size="icon-xs"
                         onClick={() => onDeleteComment(comment.id)}
-                        className="flex size-6 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                        className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                       >
                         <Trash2 className="size-3" />
-                      </button>
+                      </Button>
                     </div>
                   )}
                 </div>
                 <p className="mt-2 text-sm leading-relaxed">{comment.content}</p>
                 <div className="mt-2">
-                  <button
-                    type="button"
+                  <Button
                     onClick={() => onReactComment(comment.id, comment.isReacted)}
-                    className={`flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors ${
+                    variant={comment.isReacted ? "destructive" : "secondary"}
+                    size="xs"
+                    className={`rounded-md ${
                       comment.isReacted
                         ? "bg-destructive/10 text-destructive"
                         : "text-muted-foreground hover:bg-secondary"
@@ -161,7 +164,7 @@ export function CommentsSection({
                       className={`size-3 ${comment.isReacted ? "fill-current" : ""}`}
                     />
                     {comment.reactionsCount}
-                  </button>
+                  </Button>
                 </div>
               </div>
             );

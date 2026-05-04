@@ -1,4 +1,4 @@
-import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
+import { Outlet, createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { Clock, XCircle } from "lucide-react";
 
 import { supabase } from "@/lib/supabase";
@@ -31,6 +31,12 @@ export const Route = createFileRoute("/_student")({
 
 function StudentLayout() {
   const { profile, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  async function handleSignOut() {
+    await signOut();
+    await navigate({ to: "/login" });
+  }
 
   if (!profile) return null;
 
@@ -51,7 +57,7 @@ function StudentLayout() {
           <Button
             variant="outline"
             className="mt-6 rounded-lg"
-            onClick={() => signOut()}
+            onClick={handleSignOut}
           >
             Sign Out
           </Button>
@@ -84,7 +90,7 @@ function StudentLayout() {
           <Button
             variant="outline"
             className="mt-6 rounded-lg"
-            onClick={() => signOut()}
+            onClick={handleSignOut}
           >
             Sign Out
           </Button>

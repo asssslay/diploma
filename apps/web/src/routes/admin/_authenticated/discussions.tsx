@@ -187,13 +187,15 @@ function AdminDiscussionsPage() {
                   <td className="px-4 py-3 text-muted-foreground">{d.commentCount}</td>
                   <td className="px-4 py-3 text-muted-foreground">{formatDate(d.createdAt)}</td>
                   <td className="px-4 py-3 text-right">
-                    <button
+                    <Button
                       onClick={(e) => { e.stopPropagation(); openDeleteDiscussion(d.id); }}
+                      variant="ghost"
+                      size="icon-sm"
                       title="Delete"
-                      className="ml-auto flex size-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                      className="ml-auto text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                     >
                       <Trash2 className="size-3.5" />
-                    </button>
+                    </Button>
                   </td>
                 </tr>
               ))
@@ -266,13 +268,15 @@ function AdminDiscussionsPage() {
                             </div>
                             <p className="mt-1 text-xs leading-relaxed text-foreground/80">{comment.content}</p>
                           </div>
-                          <button
+                          <Button
                             onClick={() => openDeleteComment(selectedDiscussion.id, comment.id)}
+                            variant="ghost"
+                            size="icon-xs"
                             title="Delete comment"
-                            className="flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                            className="shrink-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                           >
                             <Trash2 className="size-3" />
-                          </button>
+                          </Button>
                         </div>
                       ))}
                     </div>

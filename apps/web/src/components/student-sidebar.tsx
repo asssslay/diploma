@@ -1,4 +1,4 @@
-import { Link, useMatchRoute } from "@tanstack/react-router";
+import { Link, useMatchRoute, useNavigate } from "@tanstack/react-router";
 import {
   GraduationCap,
   Home,
@@ -8,6 +8,7 @@ import {
   StickyNote,
   User,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/auth";
 
@@ -22,6 +23,12 @@ const navItems = [
 export function StudentSidebar() {
   const { signOut, profile } = useAuth();
   const matchRoute = useMatchRoute();
+  const navigate = useNavigate();
+
+  async function handleSignOut() {
+    await signOut();
+    await navigate({ to: "/login" });
+  }
 
   return (
     <aside className="flex h-svh w-60 flex-col border-r border-border/50 bg-card">
@@ -60,14 +67,15 @@ export function StudentSidebar() {
         <div className="mb-3 px-3 text-xs font-medium text-muted-foreground">
           {profile?.fullName ?? "Student"}
         </div>
-        <button
+        <Button
           type="button"
-          onClick={() => signOut()}
-          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+          onClick={handleSignOut}
+          variant="ghost"
+          className="h-auto w-full cursor-pointer justify-start gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground"
         >
           <LogOut className="size-4" />
           Sign Out
-        </button>
+        </Button>
       </div>
     </aside>
   );
