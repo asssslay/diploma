@@ -1,4 +1,4 @@
-import { Link, useMatchRoute } from "@tanstack/react-router";
+import { Link, useMatchRoute, useNavigate } from "@tanstack/react-router";
 import {
   LayoutDashboard,
   Users,
@@ -23,6 +23,12 @@ const navItems = [
 export function AdminSidebar() {
   const { signOut, profile } = useAuth();
   const matchRoute = useMatchRoute();
+  const navigate = useNavigate();
+
+  async function handleSignOut() {
+    await signOut();
+    await navigate({ to: "/admin/login" });
+  }
 
   return (
     <aside className="flex h-svh w-60 flex-col border-r border-border/50 bg-card">
@@ -66,7 +72,7 @@ export function AdminSidebar() {
         </div>
         <Button
           type="button"
-          onClick={() => signOut()}
+          onClick={handleSignOut}
           variant="ghost"
           className="h-auto w-full cursor-pointer justify-start gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground"
         >
