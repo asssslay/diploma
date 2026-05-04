@@ -269,20 +269,24 @@ function NewsPage() {
                   <td className="px-4 py-3 text-muted-foreground">{post.viewCount}</td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-1">
-                      <button
+                      <Button
                         onClick={() => openEditDialog(post)}
+                        variant="ghost"
+                        size="icon-sm"
                         title="Edit"
-                        className="flex size-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                        className="text-muted-foreground hover:bg-secondary hover:text-foreground"
                       >
                         <Pencil className="size-3.5" />
-                      </button>
-                      <button
+                      </Button>
+                      <Button
                         onClick={() => openDeleteDialog(post.id)}
+                        variant="ghost"
+                        size="icon-sm"
                         title="Delete"
-                        className="flex size-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                        className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                       >
                         <Trash2 className="size-3.5" />
-                      </button>
+                      </Button>
                     </div>
                   </td>
                 </tr>
@@ -331,13 +335,15 @@ function NewsPage() {
               {currentPreview && (
                 <div className="relative mt-2">
                   <img src={currentPreview} alt="Preview" className="max-h-48 rounded-xl object-cover" />
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="icon-xs"
                     onClick={() => { setImageFile(null); if (imagePreview) URL.revokeObjectURL(imagePreview); setImagePreview(null); setExistingImageUrl(null); }}
-                    className="absolute top-2 right-2 flex size-6 items-center justify-center rounded-full bg-foreground/70 text-background transition-colors hover:bg-foreground"
+                    className="absolute top-2 right-2 rounded-full bg-foreground/70 text-background hover:bg-foreground hover:text-background"
                   >
                     <Trash2 className="size-3" />
-                  </button>
+                  </Button>
                 </div>
               )}
             </div>

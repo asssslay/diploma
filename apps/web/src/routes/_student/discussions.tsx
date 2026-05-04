@@ -221,34 +221,36 @@ function DiscussionsPage() {
               autoFocus
             />
           )}
-          <button
+          <Button
             onClick={() => { setSearchOpen((v) => !v); if (searchOpen) setSearch(""); }}
-            className="flex size-9 items-center justify-center rounded-lg bg-card shadow-sm ring-1 ring-border/50 transition-colors hover:bg-secondary"
+            variant="outline"
+            size="icon"
+            className="size-9 rounded-lg bg-card shadow-sm ring-1 ring-border/50 hover:bg-secondary"
           >
             <Search className="size-4 text-muted-foreground" />
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() => setSortAsc((v) => !v)}
-            className="flex h-9 items-center gap-1.5 rounded-lg bg-card px-3 text-sm font-medium shadow-sm ring-1 ring-border/50 transition-colors hover:bg-secondary"
+            variant="outline"
+            size="sm"
+            className="h-9 rounded-lg bg-card text-sm shadow-sm ring-1 ring-border/50 hover:bg-secondary"
           >
             {sortAsc ? <ArrowUpAZ className="size-4" /> : <ArrowDownAZ className="size-4" />}
             {sortAsc ? "Oldest" : "Newest"}
-          </button>
+          </Button>
         </div>
 
         <div className="flex gap-2">
           {CATEGORIES.map(({ value, label }) => (
-            <button
+            <Button
               key={label}
               onClick={() => { setCategoryFilter(value); setPage(1); }}
-              className={`h-8 rounded-lg px-4 text-sm font-medium transition-colors ${
-                categoryFilter === value
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-card text-muted-foreground ring-1 ring-border/50 hover:bg-secondary"
-              }`}
+              variant={categoryFilter === value ? "default" : "outline"}
+              size="sm"
+              className={categoryFilter === value ? "rounded-lg px-4 text-sm" : "rounded-lg border-border/50 bg-card px-4 text-sm text-muted-foreground hover:bg-secondary"}
             >
               {label}
-            </button>
+            </Button>
           ))}
         </div>
       </div>
@@ -351,18 +353,16 @@ function DiscussionsPage() {
               <Label htmlFor="disc-category">Category</Label>
               <div className="flex flex-wrap gap-2">
                 {CATEGORIES.filter((c) => c.value).map(({ value, label }) => (
-                  <button
+                  <Button
                     key={value}
                     type="button"
                     onClick={() => setCategory(value!)}
-                    className={`h-8 rounded-lg px-3 text-sm font-medium transition-colors ${
-                      category === value
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-secondary text-muted-foreground hover:bg-secondary/80"
-                    }`}
+                    variant={category === value ? "default" : "secondary"}
+                    size="sm"
+                    className={category === value ? "rounded-lg text-sm" : "rounded-lg text-sm text-muted-foreground hover:bg-secondary/80"}
                   >
                     {label}
-                  </button>
+                  </Button>
                 ))}
               </div>
               {errors.category && <p className="text-xs text-destructive">{errors.category}</p>}

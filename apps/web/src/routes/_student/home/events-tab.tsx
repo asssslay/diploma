@@ -156,22 +156,24 @@ export function EventsTab({
             autoFocus
           />
         )}
-        <button
-          type="button"
+        <Button
           aria-label={searchOpen ? "Close events search" : "Open events search"}
           onClick={() => {
             setSearchOpen((value) => !value);
             if (searchOpen) setSearch("");
           }}
-          className="flex size-9 items-center justify-center rounded-lg bg-card shadow-sm ring-1 ring-border/50 transition-colors hover:bg-secondary"
+          variant="outline"
+          size="icon"
+          className="size-9 rounded-lg bg-card shadow-sm ring-1 ring-border/50 hover:bg-secondary"
         >
           <Search className="size-4 text-muted-foreground" />
-        </button>
-        <button
-          type="button"
+        </Button>
+        <Button
           aria-label="Sort events by date"
           onClick={() => setSortAsc((value) => !value)}
-          className="flex h-9 items-center gap-1.5 rounded-lg bg-card px-3 text-sm font-medium shadow-sm ring-1 ring-border/50 transition-colors hover:bg-secondary"
+          variant="outline"
+          size="sm"
+          className="h-9 rounded-lg bg-card text-sm shadow-sm ring-1 ring-border/50 hover:bg-secondary"
         >
           {sortAsc ? (
             <ArrowUpAZ className="size-4" />
@@ -179,23 +181,25 @@ export function EventsTab({
             <ArrowDownAZ className="size-4" />
           )}
           {sortAsc ? "Oldest" : "Newest"}
-        </button>
+        </Button>
       </div>
 
       <div className="flex gap-2">
         {EVENT_FILTER_OPTIONS.map((option) => (
-          <button
+          <Button
             key={option.value}
             type="button"
             onClick={() => setFilter(option.value)}
-            className={`h-8 rounded-lg px-4 text-sm font-medium transition-colors ${
+            variant={filter === option.value ? "default" : "outline"}
+            size="sm"
+            className={`rounded-lg px-4 text-sm ${
               filter === option.value
                 ? "bg-primary text-primary-foreground"
                 : "bg-card text-muted-foreground ring-1 ring-border/50 hover:bg-secondary"
             }`}
           >
             {option.label}
-          </button>
+          </Button>
         ))}
       </div>
 

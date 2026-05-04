@@ -215,20 +215,24 @@ function StudentsPage() {
                   <td className="px-4 py-3 text-right">
                     {app.status === "pending" && (
                       <div className="flex items-center justify-end gap-1">
-                        <button
+                        <Button
                           onClick={() => handleApprove(app.id)}
+                          variant="ghost"
+                          size="icon-sm"
                           title="Approve"
-                          className="flex size-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                          className="text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                         >
                           <Check className="size-3.5" />
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                           onClick={() => openRejectDialog(app.id)}
+                          variant="ghost"
+                          size="icon-sm"
                           title="Reject"
-                          className="flex size-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                          className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                         >
                           <X className="size-3.5" />
-                        </button>
+                        </Button>
                       </div>
                     )}
                   </td>

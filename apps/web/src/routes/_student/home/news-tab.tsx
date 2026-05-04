@@ -129,22 +129,24 @@ export function NewsTab({
             autoFocus
           />
         )}
-        <button
-          type="button"
+        <Button
           aria-label={searchOpen ? "Close news search" : "Open news search"}
           onClick={() => {
             setSearchOpen((value) => !value);
             if (searchOpen) setSearch("");
           }}
-          className="flex size-9 items-center justify-center rounded-lg bg-card shadow-sm ring-1 ring-border/50 transition-colors hover:bg-secondary"
+          variant="outline"
+          size="icon"
+          className="size-9 rounded-lg bg-card shadow-sm ring-1 ring-border/50 hover:bg-secondary"
         >
           <Search className="size-4 text-muted-foreground" />
-        </button>
-        <button
-          type="button"
+        </Button>
+        <Button
           aria-label="Sort news by publish date"
           onClick={() => setSortAsc((value) => !value)}
-          className="flex h-9 items-center gap-1.5 rounded-lg bg-card px-3 text-sm font-medium shadow-sm ring-1 ring-border/50 transition-colors hover:bg-secondary"
+          variant="outline"
+          size="sm"
+          className="h-9 rounded-lg bg-card text-sm shadow-sm ring-1 ring-border/50 hover:bg-secondary"
         >
           {sortAsc ? (
             <ArrowUpAZ className="size-4" />
@@ -152,7 +154,7 @@ export function NewsTab({
             <ArrowDownAZ className="size-4" />
           )}
           {sortAsc ? "Oldest" : "Newest"}
-        </button>
+        </Button>
       </div>
 
       {isLoading ? (

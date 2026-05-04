@@ -285,12 +285,24 @@ function EventsPage() {
                       <td className={`${tableCellClass} text-muted-foreground`}>{event.registrationCount} / {event.maxParticipants}</td>
                       <td className={`${tableCellClass} text-right`}>
                         <div className="flex items-center justify-end gap-1">
-                          <button onClick={() => openEditDialog(event)} title="Edit" className="flex size-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => openEditDialog(event)}
+                            title="Edit"
+                            className="text-muted-foreground hover:bg-secondary hover:text-foreground"
+                          >
                             <Pencil className="size-3.5" />
-                          </button>
-                          <button onClick={() => openDeleteDialog(event.id)} title="Delete" className="flex size-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive">
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => openDeleteDialog(event.id)}
+                            title="Delete"
+                            className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                          >
                             <Trash2 className="size-3.5" />
-                          </button>
+                          </Button>
                         </div>
                       </td>
                     </tr>
@@ -315,9 +327,15 @@ function EventsPage() {
           <div className="space-y-4">
             <div className="flex flex-wrap gap-2">
               {eventsList.map((event) => (
-                <button key={event.id} onClick={() => fetchEventDetail(event.id)} className={`h-8 rounded-lg px-3 text-sm font-medium transition-colors ${selectedEvent?.id === event.id ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground ring-1 ring-border/50 hover:bg-secondary"}`}>
+                <Button
+                  key={event.id}
+                  variant={selectedEvent?.id === event.id ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => fetchEventDetail(event.id)}
+                  className={selectedEvent?.id === event.id ? "rounded-lg" : "rounded-lg border-border/50 bg-card text-muted-foreground hover:bg-secondary"}
+                >
                   {event.title}
-                </button>
+                </Button>
               ))}
               {eventsList.length === 0 && !isLoading && <p className="text-sm text-muted-foreground">No events to show registrations for.</p>}
             </div>
@@ -401,9 +419,15 @@ function EventsPage() {
               {currentPreview && (
                 <div className="relative mt-2">
                   <img src={currentPreview} alt="Preview" className="max-h-48 rounded-xl object-cover" />
-                  <button type="button" onClick={() => { setImageFile(null); if (imagePreview) URL.revokeObjectURL(imagePreview); setImagePreview(null); setExistingImageUrl(null); }} className="absolute top-2 right-2 flex size-6 items-center justify-center rounded-full bg-foreground/70 text-background transition-colors hover:bg-foreground">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-xs"
+                    onClick={() => { setImageFile(null); if (imagePreview) URL.revokeObjectURL(imagePreview); setImagePreview(null); setExistingImageUrl(null); }}
+                    className="absolute top-2 right-2 rounded-full bg-foreground/70 text-background hover:bg-foreground hover:text-background"
+                  >
                     <Trash2 className="size-3" />
-                  </button>
+                  </Button>
                 </div>
               )}
             </div>

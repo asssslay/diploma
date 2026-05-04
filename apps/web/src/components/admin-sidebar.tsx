@@ -8,6 +8,7 @@ import {
   LogOut,
   GraduationCap,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/auth";
 
@@ -63,14 +64,15 @@ export function AdminSidebar() {
         <div className="mb-3 px-3 text-xs font-medium text-muted-foreground">
           {profile?.fullName ?? "Administrator"}
         </div>
-        <button
+        <Button
           type="button"
           onClick={() => signOut()}
-          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+          variant="ghost"
+          className="h-auto w-full cursor-pointer justify-start gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground"
         >
           <LogOut className="size-4" />
           Sign Out
-        </button>
+        </Button>
       </div>
     </aside>
   );

@@ -68,23 +68,25 @@ export function ListToolbar({
           autoFocus
         />
       )}
-      <button
-        type="button"
+      <Button
         onClick={onSearchToggle}
         aria-label={searchButtonLabel}
-        className="flex size-9 items-center justify-center rounded-lg bg-card shadow-sm ring-1 ring-border/50 transition-colors hover:bg-secondary"
+        variant="outline"
+        size="icon"
+        className="size-9 rounded-lg bg-card shadow-sm ring-1 ring-border/50 hover:bg-secondary"
       >
         <Search className="size-4 text-muted-foreground" />
-      </button>
-      <button
-        type="button"
+      </Button>
+      <Button
         onClick={onSortToggle}
         aria-label={sortButtonLabel}
-        className="flex h-9 items-center gap-1.5 rounded-lg bg-card px-3 text-sm font-medium shadow-sm ring-1 ring-border/50 transition-colors hover:bg-secondary"
+        variant="outline"
+        size="sm"
+        className="h-9 rounded-lg bg-card text-sm shadow-sm ring-1 ring-border/50 hover:bg-secondary"
       >
         {sortIcon}
         {sortButtonText}
-      </button>
+      </Button>
       <div className="flex-1" />
       <Button className="rounded-lg" onClick={onCreate}>
         <Plus className="mr-2 size-4" />

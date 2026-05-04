@@ -1,0 +1,112 @@
+<mxfile host="app.diagrams.net" modified="2026-05-01T18:32:00.000Z" agent="Codex" version="26.2.15">
+  <diagram id="is-component-view" name="IS Component View">
+    <mxGraphModel dx="1800" dy="1100" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1920" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="frame" value="IS Component View" style="swimlane;rounded=0;whiteSpace=wrap;html=1;startSize=46;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;fontSize=20;fontStyle=1;fontFamily=Times New Roman;" vertex="1" parent="1">
+          <mxGeometry x="30" y="30" width="1780" height="1080" as="geometry" />
+        </mxCell>
+        <mxCell id="clientContainer" value="Web Client &lt;&lt;subsystem&gt;&gt;" style="swimlane;rounded=0;whiteSpace=wrap;html=1;startSize=34;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;fontSize=17;fontStyle=1;fontFamily=Times New Roman;" vertex="1" parent="frame">
+          <mxGeometry x="30" y="80" width="520" height="930" as="geometry" />
+        </mxCell>
+        <mxCell id="serverContainer" value="Server Subsystem &lt;&lt;subsystem&gt;&gt;" style="swimlane;rounded=0;whiteSpace=wrap;html=1;startSize=34;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;fontSize=17;fontStyle=1;fontFamily=Times New Roman;" vertex="1" parent="frame">
+          <mxGeometry x="590" y="80" width="760" height="930" as="geometry" />
+        </mxCell>
+        <mxCell id="supportContainer" value="Shared Packages and External Dependencies" style="swimlane;rounded=0;whiteSpace=wrap;html=1;startSize=34;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;fontSize=17;fontStyle=1;fontFamily=Times New Roman;" vertex="1" parent="frame">
+          <mxGeometry x="1390" y="80" width="350" height="930" as="geometry" />
+        </mxCell>
+        <mxCell id="webAuth" value="&lt;b&gt;Authentication Context&lt;/b&gt;&lt;br/&gt;&lt;&lt;component&gt;&gt;&lt;br/&gt;AuthProvider({ children })&lt;br/&gt;useAuth()&lt;br/&gt;signIn(email, password)&lt;br/&gt;signUp(email, password, metadata)&lt;br/&gt;signOut()" style="shape=component;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=10;spacingTop=6;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;fontSize=13;fontFamily=Times New Roman;" vertex="1" parent="clientContainer">
+          <mxGeometry x="20" y="50" width="480" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="webApi" value="&lt;b&gt;API Client&lt;/b&gt;&lt;br/&gt;&lt;&lt;component&gt;&gt;&lt;br/&gt;getApiClient()&lt;br/&gt;readApiErrorResponse(response)" style="shape=component;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=10;spacingTop=6;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;fontSize=13;fontFamily=Times New Roman;" vertex="1" parent="clientContainer">
+          <mxGeometry x="20" y="260" width="480" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="webGate" value="&lt;b&gt;Activity Gate Presenter&lt;/b&gt;&lt;br/&gt;&lt;&lt;component&gt;&gt;&lt;br/&gt;getRequiredProfileFieldLabel(field)&lt;br/&gt;getMissingProfileFieldLabels(fields)&lt;br/&gt;getCommentGateMessage(activityGate)&lt;br/&gt;getDiscussionGateMessage(activityGate)&lt;br/&gt;getBackgroundGateMessage(activityGate)" style="shape=component;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=10;spacingTop=6;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;fontSize=13;fontFamily=Times New Roman;" vertex="1" parent="clientContainer">
+          <mxGeometry x="20" y="410" width="480" height="190" as="geometry" />
+        </mxCell>
+        <mxCell id="serverCore" value="&lt;b&gt;API Composition and Access Control&lt;/b&gt;&lt;br/&gt;&lt;&lt;component&gt;&gt;&lt;br/&gt;createRouter()&lt;br/&gt;verifyAccessToken(token)&lt;br/&gt;validationHook(result, c)" style="shape=component;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=10;spacingTop=6;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;fontSize=13;fontFamily=Times New Roman;" vertex="1" parent="serverContainer">
+          <mxGeometry x="20" y="50" width="720" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="serverGate" value="&lt;b&gt;Activity Gate Service&lt;/b&gt;&lt;br/&gt;&lt;&lt;component&gt;&gt;&lt;br/&gt;buildActivityGate(profile, commentsPosted, registeredEventsCount)&lt;br/&gt;getActivityGateForUser(userId)" style="shape=component;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=10;spacingTop=6;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;fontSize=13;fontFamily=Times New Roman;" vertex="1" parent="serverContainer">
+          <mxGeometry x="20" y="220" width="720" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="serverEvents" value="&lt;b&gt;Events and Reminder Orchestration&lt;/b&gt;&lt;br/&gt;&lt;&lt;component&gt;&gt;&lt;br/&gt;registerForEvent(eventId, studentId)&lt;br/&gt;syncEventRegistrationReminders(params)&lt;br/&gt;scheduleBothEventReminders(...)&lt;br/&gt;cancelBothEventReminders(ids)&lt;br/&gt;cancelAllUserDeadlineReminders(userId)&lt;br/&gt;scheduleAllUserDeadlineReminders(userId)&lt;br/&gt;cancelAllUserEventReminders(userId)&lt;br/&gt;scheduleAllUserEventReminders(userId)" style="shape=component;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=10;spacingTop=6;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;fontSize=13;fontFamily=Times New Roman;" vertex="1" parent="serverContainer">
+          <mxGeometry x="20" y="350" width="720" height="230" as="geometry" />
+        </mxCell>
+        <mxCell id="serverEmails" value="&lt;b&gt;Email Notification Service&lt;/b&gt;&lt;br/&gt;&lt;&lt;component&gt;&gt;&lt;br/&gt;accountApprovedEmail(fullName)&lt;br/&gt;accountRejectedEmail(fullName, reason)&lt;br/&gt;deadlineReminderEmail(title, dueAt, hoursBefore)&lt;br/&gt;eventReminderEmail(title, eventDate, location, hoursBefore)&lt;br/&gt;sendEmail(to, template)&lt;br/&gt;scheduleDeadlineReminder(...)&lt;br/&gt;scheduleEventReminder(...)&lt;br/&gt;cancelScheduledEmail(emailId)" style="shape=component;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=10;spacingTop=6;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;fontSize=13;fontFamily=Times New Roman;" vertex="1" parent="serverContainer">
+          <mxGeometry x="20" y="610" width="720" height="190" as="geometry" />
+        </mxCell>
+        <mxCell id="serverTelemetry" value="&lt;b&gt;Telemetry and Shared Utilities&lt;/b&gt;&lt;br/&gt;&lt;&lt;component&gt;&gt;&lt;br/&gt;shouldTrackRequest(pathname)&lt;br/&gt;recordRequestDuration(durationMs, timestampMs)&lt;br/&gt;getTelemetrySnapshot(nowMs)&lt;br/&gt;runThrottled(tasks, ratePerSecond)&lt;br/&gt;countNewsPostsTotal()&lt;br/&gt;createNewsExcerpt(content, maxLength)" style="shape=component;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=10;spacingTop=6;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;fontSize=13;fontFamily=Times New Roman;" vertex="1" parent="serverContainer">
+          <mxGeometry x="20" y="830" width="720" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="envPkg" value="&lt;b&gt;Environment Configuration&lt;/b&gt;&lt;br/&gt;&lt;&lt;component&gt;&gt;&lt;br/&gt;createServerEnv(runtimeEnv)&lt;br/&gt;createWebEnv(runtimeEnv)" style="shape=component;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=10;spacingTop=6;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;fontSize=13;fontFamily=Times New Roman;" vertex="1" parent="supportContainer">
+          <mxGeometry x="20" y="50" width="310" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="dataAccess" value="&lt;b&gt;Data Access Layer&lt;/b&gt;&lt;br/&gt;&lt;&lt;component&gt;&gt;&lt;br/&gt;db&lt;br/&gt;supabaseAdmin&lt;br/&gt;schema" style="shape=component;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=10;spacingTop=6;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;fontSize=13;fontFamily=Times New Roman;" vertex="1" parent="supportContainer">
+          <mxGeometry x="20" y="180" width="310" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="database" value="&lt;b&gt;Supabase / PostgreSQL&lt;/b&gt;&lt;br/&gt;&lt;&lt;database&gt;&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;fontSize=13;fontStyle=1;fontFamily=Times New Roman;" vertex="1" parent="supportContainer">
+          <mxGeometry x="95" y="320" width="160" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="resend" value="&lt;b&gt;Resend Email Provider&lt;/b&gt;&lt;br/&gt;&lt;&lt;external service&gt;&gt;" style="shape=component;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=10;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;fontSize=13;fontFamily=Times New Roman;" vertex="1" parent="supportContainer">
+          <mxGeometry x="20" y="450" width="310" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="apiSurface" value="&lt;b&gt;Public API Surface&lt;/b&gt;&lt;br/&gt;/api/news, /api/events, /api/discussions, /api/notes, /api/deadlines, /api/profile, /api/settings, /api/admin/*" style="shape=component;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=10;spacingTop=6;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;fontSize=13;fontFamily=Times New Roman;" vertex="1" parent="supportContainer">
+          <mxGeometry x="20" y="580" width="310" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" value="JWT session" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;fontColor=#000000;endArrow=classic;endFill=1;fontFamily=Times New Roman;" edge="1" parent="1" source="webAuth" target="webApi">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" value="REST API / JSON over HTTPS" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;fontColor=#000000;endArrow=classic;endFill=1;fontFamily=Times New Roman;" edge="1" parent="1" source="webApi" target="serverCore">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" value="ActivityGate DTO" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;strokeColor=#000000;fontColor=#000000;endArrow=open;endFill=0;fontFamily=Times New Roman;" edge="1" parent="1" source="serverGate" target="webGate">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" value="uses env" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;fontColor=#000000;endArrow=classic;endFill=1;fontFamily=Times New Roman;" edge="1" parent="1" source="envPkg" target="webAuth">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" value="uses env" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;fontColor=#000000;endArrow=classic;endFill=1;fontFamily=Times New Roman;" edge="1" parent="1" source="envPkg" target="webApi">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" value="uses env" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;fontColor=#000000;endArrow=classic;endFill=1;fontFamily=Times New Roman;" edge="1" parent="1" source="envPkg" target="serverCore">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" value="authorization and validation" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;fontColor=#000000;endArrow=classic;endFill=1;fontFamily=Times New Roman;" edge="1" parent="1" source="serverCore" target="serverGate">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" value="orchestrates use cases" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;fontColor=#000000;endArrow=classic;endFill=1;fontFamily=Times New Roman;" edge="1" parent="1" source="serverCore" target="serverEvents">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e9" value="request metrics" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;fontColor=#000000;endArrow=classic;endFill=1;fontFamily=Times New Roman;" edge="1" parent="1" source="serverCore" target="serverTelemetry">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e10" value="data queries" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;fontColor=#000000;endArrow=classic;endFill=1;fontFamily=Times New Roman;" edge="1" parent="1" source="serverCore" target="dataAccess">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e11" value="data queries" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;fontColor=#000000;endArrow=classic;endFill=1;fontFamily=Times New Roman;" edge="1" parent="1" source="serverGate" target="dataAccess">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e12" value="data queries" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;fontColor=#000000;endArrow=classic;endFill=1;fontFamily=Times New Roman;" edge="1" parent="1" source="serverEvents" target="dataAccess">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e13" value="counts and persistence" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;fontColor=#000000;endArrow=classic;endFill=1;fontFamily=Times New Roman;" edge="1" parent="1" source="serverTelemetry" target="dataAccess">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e14" value="DB access" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;fontColor=#000000;endArrow=classic;endFill=1;fontFamily=Times New Roman;" edge="1" parent="1" source="dataAccess" target="database">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e15" value="schedules and sends emails" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;fontColor=#000000;endArrow=classic;endFill=1;fontFamily=Times New Roman;" edge="1" parent="1" source="serverEvents" target="serverEmails">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e16" value="provider API" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;fontColor=#000000;endArrow=classic;endFill=1;fontFamily=Times New Roman;" edge="1" parent="1" source="serverEmails" target="resend">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e17" value="implemented by" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;strokeColor=#000000;fontColor=#000000;endArrow=open;endFill=0;fontFamily=Times New Roman;" edge="1" parent="1" source="apiSurface" target="serverCore">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

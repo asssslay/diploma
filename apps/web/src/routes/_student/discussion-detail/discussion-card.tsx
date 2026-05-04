@@ -73,10 +73,11 @@ export function DiscussionCard({
       </div>
 
       <div className="mt-4 border-t border-border/50 pt-4">
-        <button
-          type="button"
+        <Button
           onClick={onReact}
-          className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+          variant={discussion.isReacted ? "destructive" : "secondary"}
+          size="sm"
+          className={`rounded-lg ${
             discussion.isReacted
               ? "bg-destructive/10 text-destructive"
               : "bg-secondary text-muted-foreground hover:bg-secondary/80"
@@ -86,7 +87,7 @@ export function DiscussionCard({
             className={`size-4 ${discussion.isReacted ? "fill-current" : ""}`}
           />
           {discussion.reactionsCount}
-        </button>
+        </Button>
       </div>
     </div>
   );
